@@ -1,0 +1,4 @@
+.context/
+TODO*.md
+*todo*.md
+.DS_Store

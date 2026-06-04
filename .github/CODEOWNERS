@@ -1,0 +1,33 @@
+# Canonical CODEOWNERS for brettdavies/* repos.
+# Pairs with the ruleset's `require_code_owner_review: true` parameter:
+# the ruleset only enforces "a code owner approved" when a touched file
+# matches a path here. Without coverage on a path, the rule is bypassed
+# for that path.
+#
+# Replace @brettdavies with your account or team handle before committing,
+# e.g.:
+#     sed 's/@brettdavies/@brettdavies/' CODEOWNERS > .github/CODEOWNERS
+
+# --- Governance: what ships and how ---
+scripts/**              @brettdavies
+.github/workflows/**    @brettdavies
+.github/rulesets/**     @brettdavies
+.github/CODEOWNERS      @brettdavies
+
+# --- Release integrity: drives every future cut ---
+cliff.toml              @brettdavies
+
+# --- Legal hygiene: never edit without deliberate review ---
+LICENSE-*               @brettdavies
+
+# --- Workflow docs: drift between docs and rulesets is a failure mode ---
+RELEASES.md             @brettdavies
+AGENTS.md               @brettdavies
+
+# --- Optional extensions for repos accepting outside contributions ---
+# Uncomment the lines you want covered.
+#
+# evals/**              @brettdavies
+# tests/**              @brettdavies
+# fixtures/**           @brettdavies
+# .markdownlint-cli2.yaml @brettdavies
