@@ -102,6 +102,66 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   Returns nothing. If cherry-picks pulled in guarded paths via rename detection, resolve per `RELEASES.md` §
   Cherry-pick conflicts on guarded paths.
 
+### Local gates and shipped-script smoke
+
+bird-skill is a docs-only bundle. There is no `cargo test` to run; the local gates are markdown lint, script parse, and
+shipped-script smoke tests. Run every box on the staged `release/v<X.Y.Z>` branch before opening the PR to `main` — CI
+runs the same lint job, but the script smoke is not in CI today and is the most likely thing to regress silently.
+
+- [ ] **Markdown lint clean across the whole tree.** CI runs this on the PR, but rerun locally on the release branch to
+  fail fast:
+
+  ```bash
+  bunx markdownlint-cli2 "**/*.md"            # must report 0 errors
+  ```
+
+- [ ] **Every shipped shell script parses.** Catches the kind of `unbalanced quote` / missing `fi` that only surfaces
+  when the script actually runs on the post-tag path:
+
+  ```bash
+  for f in scripts/*.sh; do bash -n "$f" || echo "FAIL: $f"; done
+  ```
+
+- [ ] **`scripts/generate-changelog.sh` smoke.** On the staged release branch (so the branch-name version extraction has
+  something to match):
+
+  ```bash
+  ./scripts/generate-changelog.sh --check            # exit 0 = CHANGELOG.md has a versioned section
+  ./scripts/generate-changelog.sh --dry-run          # exit 0 = no drift between PR bodies and CHANGELOG.md
+  ```
+
+  Drift (exit 1) means a merged PR's `## Changelog` body diverges from what got written. Resolve before tagging — once
+  the tag pushes, the bad CHANGELOG is in the release notes.
+
+- [ ] **`scripts/sync-dev-after-release.sh` smoke.** The script only runs post-tag (it gates on tag existence + GitHub
+  Release presence), so pre-cut smoke is limited to syntax + a read of the prerequisites it checks:
+
+  ```bash
+  bash -n scripts/sync-dev-after-release.sh
+  grep -E '^(# Verify|# Cut)' scripts/sync-dev-after-release.sh   # confirms the guard lines still exist
+  ```
+
+  Reserve the actual run for after the tag pushes (the `## Post-tag verification` row below covers it).
+
+- [ ] **`bird --version` ≥ the minimum pinned in `README.md`.** The skill teaches an agent how to drive `bird`. If
+  `README.md` documents `requires bird vMIN` (or similar), the locally-installed `bird` must satisfy it before shipping.
+  Otherwise users following the install instructions get a tool that mismatches the skill's expectations.
+
+  ```bash
+  bird --version
+  rg '^Requires `bird` v' README.md                  # pin lives here; bump in lockstep with skill content
+  ```
+
+- [ ] **`SKILL.md` references resolve.** Every `references/<file>` or `scripts/<file>` mentioned in `SKILL.md`
+  physically exists in the working tree at the path the file claims. (TODO until `SKILL.md` lands; mark this row `N/A`
+  while the skill body is still empty.)
+
+  ```bash
+  rg -oN '\((?:\./)?(references|scripts)/[^)]+\)' SKILL.md \
+    | sed -E 's/.*\(\.?\/?//; s/\)$//' \
+    | xargs -I{} test -e {} || echo "broken ref"
+  ```
+
 ### Post-tag verification
 
 Run immediately after the tag push triggers the release workflow.
