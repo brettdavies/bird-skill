@@ -27,11 +27,12 @@ bird --version
 
 ## Layout
 
-- `SKILL.md` — entrypoint Claude Code loads (forthcoming)
-- `references/` — auxiliary docs the skill points the agent at (forthcoming)
-- `scripts/` — release-flow helpers (`sync-dev-after-release.sh`, `generate-changelog.sh`)
-- `RELEASES.md` — how a change reaches users
-- `AGENTS.md` — repo shape for agent contributors
+- `SKILL.md`: entrypoint Claude Code loads (forthcoming)
+- `references/`: auxiliary docs the skill points the agent at (forthcoming)
+- `scripts/`: the consumer-side `write-op-gate.sh`, plus maintainer release tooling (`release/`,
+  `generate-changelog.py`, `sync-dev-after-release.sh`)
+- `RELEASES.md`: how a change reaches users
+- `AGENTS.md`: repo shape for agent contributors
 
 ## Contributing
 
