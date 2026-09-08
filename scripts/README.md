@@ -72,6 +72,22 @@ When the bundle is checked out for development (not installed via `bird skill in
 ./scripts/write-op-gate.sh --yes -- bird tweet "..."
 ```
 
+## Maintainer-side release tooling
+
+Everything else under `scripts/` is release-flow tooling for this repo's maintainers, vendored from the
+`github-repo-setup` skill and not part of the consumer contract. It rides along on install because the bundle is the
+whole repo, but nothing in `SKILL.md` points an agent at it.
+
+| Path                        | Role                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `release/drift.sh`          | Branch drift gate: what `main` holds that `dev` never received.                |
+| `release/guarded-paths.sh`  | Emits the `grep -E` pattern for every path `guard-main-docs` blocks on `main`. |
+| `release/_lib.sh`           | Shared helpers sourced by the release scripts.                                 |
+| `generate-changelog.py`     | Builds the `CHANGELOG.md` section from merged PR bodies (`--from-dev-prs`).    |
+| `sync-dev-after-release.sh` | Backports `VERSION` and `CHANGELOG.md` from `main` to `dev` via a PR.          |
+
+The runbook is [`RELEASES.md`](../RELEASES.md).
+
 ## Requirements
 
 - `bash` — `#!/usr/bin/env bash`, uses `[[ ]]` regex matching.
