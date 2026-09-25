@@ -166,9 +166,10 @@ Breaking changes / Added / Changed / Fixed / Documentation` subsections (with au
 cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's commits, then expands
 the same way.
 
-If a PR's body carries no changelog content, its title becomes a `Changed` bullet, except for `chore`, `ci`, `build`,
-`style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. To fix a wrong CHANGELOG entry,
-fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
+If a PR's body has no `## Changelog` section at all, its title becomes a `Changed` bullet, except for `chore`, `ci`,
+`build`, `style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. A PR that keeps the
+`## Changelog` heading and leaves it empty has declared nothing user-facing and adds nothing. To fix a wrong CHANGELOG
+entry, fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
 
 `scripts/generate-changelog.py --check` verifies that `CHANGELOG.md` has a versioned section (not just `[Unreleased]`).
 This repo has no release-branch CI job; the check is a [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) row.
@@ -206,6 +207,15 @@ touched, and a direct push to `dev` bypasses its required status checks. The scr
 every version carrier present (for this repo, `VERSION`, which it creates on the first run), copies `CHANGELOG.md` from
 `main` when `main` carries one, and opens the PR. The diff is mechanical, so reviewers can spot-check and squash-merge as
 usual.
+
+A release branch also takes edits nobody predicts (a doc fix, a reverted payload, a deleted config). Each is made
+against `main`'s base, so it reaches `dev` only through the backport; left behind, the next release's overlay restores
+`dev`'s copy over it and silently undoes the edit. A fixed list of files misses these, so the script discovers every
+path the two branches disagree about. The previous release tag bounds that discovery, because it is the last point the
+branches agreed: a path `dev` has not touched since the tag is release-prep and is adopted, while a path both sides
+moved is contested and is only reported, so widening the copy cannot revert `dev`'s unreleased work. The operator
+adopts contested paths by name (`--only`) or all at once (`--include-contested`). Guarded paths (the engineering docs)
+never enter discovery, so the backport cannot remove them.
 
 The script is idempotent: it exits 0 without creating a branch or PR when the synced files already match `main`. Safe
 to re-run, safe to invoke from automation that doesn't track whether the last release was already backported.
