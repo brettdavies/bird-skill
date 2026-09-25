@@ -45,9 +45,13 @@ Run immediately after the tag push and `gh release create`.
   last-good tree. Mark the bad GitHub Release as a pre-release afterwards.
 - [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Run
   `scripts/sync-dev-after-release.sh v<version>`; it writes `VERSION` (creating it on the first release that uses
-  this flow), copies `CHANGELOG.md` from `main`, and opens `chore/sync-dev-after-v<version>` against `dev`. Merge it
-  once CI is green. Keeps the next release's diff-A quiet so a real missed path stands out instead of hiding in
-  expected divergence noise.
+  this flow), copies `CHANGELOG.md` from `main`, adopts the release-prep edits it discovers since the previous tag, and
+  opens `chore/sync-dev-after-v<version>` against `dev`. Contested paths (both branches moved them) are listed and
+  withheld: run with `--dry-run` first to see both lists without creating a branch, then name the contested paths to
+  take with `--only PATH` (see
+  [`RELEASES.md` § After publish](./RELEASES.md#after-publish-sync-dev-with-the-release)). Merge the PR once CI is
+  green. Keeps the next release's diff-A quiet so a real missed path stands out instead of hiding in expected
+  divergence noise.
 
   The script is idempotent: re-running on a `dev` already in sync exits 0 without creating a branch or PR. Never merge
   `main` into `dev` and never push to `dev` directly.

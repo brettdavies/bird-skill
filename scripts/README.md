@@ -84,7 +84,7 @@ whole repo, but nothing in `SKILL.md` points an agent at it.
 | `release/guarded-paths.sh`  | Emits the `grep -E` pattern for every path `guard-main-docs` blocks on `main`. |
 | `release/_lib.sh`           | Shared helpers sourced by the release scripts.                                 |
 | `generate-changelog.py`     | Builds the `CHANGELOG.md` section from merged PR bodies (`--from-dev-prs`).    |
-| `sync-dev-after-release.sh` | Backports `VERSION` and `CHANGELOG.md` from `main` to `dev` via a PR.          |
+| `sync-dev-after-release.sh` | Backports `VERSION`, `CHANGELOG.md`, and release-prep edits to `dev` via a PR. |
 
 The runbook is [`RELEASES.md`](../RELEASES.md).
 

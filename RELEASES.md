@@ -66,7 +66,9 @@ Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` v
   gate results, CI status, or prose-scrub findings. Anomalies get fixed before push, not audit-trailed.
 - **Changelog** subsections (`### Added` / `### Changed` / `### Fixed` / `### Documentation`): 1-5 bullets each, delete
   empty subsections, each bullet starts with a verb. `scripts/generate-changelog.py` extracts these bullets verbatim
-  into `CHANGELOG.md`; a PR that lands with an empty `## Changelog` contributes only its title.
+  into `CHANGELOG.md`. A PR that lands with an empty `## Changelog` contributes nothing; only a PR whose body has no
+  `## Changelog` section at all contributes its title, and not even then for `chore`, `ci`, `build`, `style`, or
+  `test` PRs.
 - **Type of Change**: one checkbox. Prefer `feat`/`fix` over `chore` for any user-observable change.
 - **Related Issues/Stories**: four labels (`Story:` / `Issue:` / `Architecture:` / `Related PRs:`). All four required
   even when empty (`- None.` / `n/a`).
@@ -239,16 +241,37 @@ exists and is not a draft, so the release step is not optional.
 
 ### After publish: sync `dev` with the release
 
-Once the GitHub Release is published, bring the release bookkeeping (`VERSION`, `CHANGELOG.md`) back to `dev` so the
-integration branch starts from the released baseline:
+Once the GitHub Release is published, bring the release bookkeeping (`VERSION`, `CHANGELOG.md`) and any edit made on
+the release branch back to `dev` so the integration branch starts from the released baseline. Preview it first:
+`--dry-run` prints what the sync would carry, creates no branch, and leaves the tree clean.
 
 ```bash
+scripts/sync-dev-after-release.sh v<version> --dry-run
 scripts/sync-dev-after-release.sh v<version>
 ```
 
-The script opens a PR against `dev`; merge it once CI is green. Never merge `main` into `dev` or push to `dev` directly:
-the squash-merged histories share no recent ancestry, so the merge conflicts on every file both sides touched, and a
-direct push bypasses `dev`'s required checks.
+The script cuts a `chore/sync-dev-after-v<version>` branch, writes the released version into `VERSION` in place
+(creating the file on the first backport), copies `CHANGELOG.md` from `main` when `main` carries one, and opens a PR
+against `dev`.
+
+Every other path `main` and `dev` disagree about is discovered, bounded by the previous `v*` tag, the last point the two
+branches agreed:
+
+- **release-prep**: `dev`'s copy is unchanged since the previous tag, so the difference is `main`'s alone. Adopted
+  automatically.
+- **contested**: both sides moved since the previous tag. Listed and withheld. `--only PATH` (repeatable) adopts the
+  paths it names; `--include-contested` takes `main`'s copy of every one, which also deletes each file `dev` added that
+  `main` lacks.
+
+With no earlier `v*` tag there is no bound, so discovery is skipped and the sync carries only `VERSION` and
+`CHANGELOG.md`. Guarded paths (the engineering docs `scripts/release/guarded-paths.sh` resolves) never enter discovery,
+so the sync cannot remove them. After the commit, when the sync carried `CHANGELOG.md` and `git-cliff` is installed, the
+script runs `scripts/generate-changelog.py --dry-run` and, on a mismatch, prints the generator's reason (a PR body
+edited after generation, or line wrapping only); that warning does not fail the sync.
+
+Merge the PR once CI is green. Never merge `main` into `dev` or push to `dev` directly: the squash-merged histories
+share no recent ancestry, so the merge conflicts on every file both sides touched, and a direct push bypasses `dev`'s
+required checks.
 
 The backport is idempotent: re-running on a `dev` already in sync exits 0 without creating a branch or PR.
 
