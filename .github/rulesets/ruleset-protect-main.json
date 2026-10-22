@@ -62,6 +62,14 @@
           {
             "context": "markdownlint",
             "integration_id": 15368
+          },
+          {
+            "context": "shellcheck",
+            "integration_id": 15368
+          },
+          {
+            "context": "scripts-tests",
+            "integration_id": 15368
           }
         ]
       }
