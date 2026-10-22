@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# fixtures/bin/bird: `bird` stub used by tests/run.sh.
+#
+# Models the real binary's streams: a body paired with exit code 0 is
+# written to stdout (a success envelope or a dry-run envelope); a body
+# paired with a non-zero exit code is written to stderr (an error
+# envelope).
+#
+#     BIRD_STUB_DRYRUN_BODY   Body when called with `--dry-run`.
+#     BIRD_STUB_DRYRUN_EXIT   Exit code for the dry-run call (default 0).
+#     BIRD_STUB_LIVE_BODY     Body when called without `--dry-run`.
+#     BIRD_STUB_LIVE_EXIT     Exit code for the live call (default 0).
+#     BIRD_STUB_CALLS         File the stub appends each call's argv to,
+#                             one call per line.
+#
+# Like the binary, a live write without --force, --yes, or -f refuses a
+# caller whose stdin is not a terminal (exit 2, requires-confirmation).
+
+set -u
+
+emit() {
+  local body=$1 code=$2
+  if [ "$code" = "0" ]; then
+    printf '%s\n' "$body"
+  else
+    printf '%s\n' "$body" >&2
+  fi
+  exit "$code"
+}
+
+if [ -n "${BIRD_STUB_CALLS:-}" ]; then
+  printf '%s\n' "$*" >>"$BIRD_STUB_CALLS"
+fi
+
+forced=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) emit "${BIRD_STUB_DRYRUN_BODY:-}" "${BIRD_STUB_DRYRUN_EXIT:-0}" ;;
+    --force | --yes | -f) forced=1 ;;
+  esac
+done
+
+if [ "$forced" = "0" ] && [ ! -t 0 ]; then
+  emit "{\"error\":\"requires-confirmation\",\"kind\":\"usage\",\"message\":\"destructive operation '${1:-}' requires --force, --yes, or interactive confirmation\",\"exit_code\":2,\"meta\":{}}" 2
+fi
+
+emit "${BIRD_STUB_LIVE_BODY:-}" "${BIRD_STUB_LIVE_EXIT:-0}"
