@@ -9,7 +9,9 @@
 #   1. Runs the verb with `--dry-run --output json --quiet` and inspects the envelope.
 #   2. If the envelope is an error (kind != "command" success OR exit code != 0), surfaces it and exits non-zero.
 #   3. On a TTY, prompts [y/N]. Off-TTY, requires --yes or refuses.
-#   4. Execs the verb again with `--output json` (no --dry-run) so the live response lands on stdout.
+#   4. Execs the verb again with `--force --output json` (no --dry-run) so the live response lands on stdout.
+#      The gate's confirmation stands in for bird's own: without --force, bird refuses a non-TTY
+#      caller with exit 2 (requires-confirmation) and prompts a TTY caller a second time.
 #
 # Exit codes:
 #   0  live call succeeded
@@ -134,4 +136,4 @@ else
 fi
 
 # Live call. exec replaces the shell so the live exit code is what the caller sees.
-exec bird "$VERB" "$@" --output json
+exec bird "$VERB" "$@" --force --output json
