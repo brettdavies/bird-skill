@@ -38,10 +38,19 @@ EOF
 YES=0
 while (($#)); do
   case "$1" in
-    --yes|-y) YES=1; shift ;;
-    --) shift; break ;;
-    -h|--help) usage ;;
-    *) printf 'write-op-gate: unexpected pre-`--` arg: %s\n' "$1" >&2; usage ;;
+    --yes | -y)
+      YES=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -h | --help) usage ;;
+    *)
+      printf 'write-op-gate: unexpected pre-`--` arg: %s\n' "$1" >&2
+      usage
+      ;;
   esac
 done
 
@@ -60,7 +69,7 @@ shift 2
 
 for arg in "$@"; do
   case "$arg" in
-    --dry-run|--force|--yes|--output|--output=*|--json|--jsonl)
+    --dry-run | --force | --yes | --output | --output=* | --json | --jsonl)
       printf 'write-op-gate: refuse to pass-through `%s` - the gate controls it\n' "$arg" >&2
       exit 2
       ;;
@@ -84,7 +93,7 @@ DRY_RC=0
 DRY_OUT=$(bird "$VERB" "$@" --dry-run --output json --quiet 2>/tmp/write-op-gate.preflight.err) || DRY_RC=$?
 DRY_ERR=$(cat /tmp/write-op-gate.preflight.err 2>/dev/null || true)
 
-if (( DRY_RC != 0 )); then
+if ((DRY_RC != 0)); then
   printf 'write-op-gate: dry-run rejected (exit %d)\n' "$DRY_RC" >&2
   if [[ -n "$DRY_ERR" ]]; then
     printf '%s\n' "$DRY_ERR" | "$JQ_BIN" -r '"  kind=" + (.kind // "?") + " exit_code=" + ((.exit_code // 0) | tostring) + " error=" + (.error // "")' >&2 || printf '%s\n' "$DRY_ERR" >&2
@@ -111,11 +120,14 @@ if [[ -t 0 && -t 2 ]]; then
   printf 'Proceed? [y/N] ' >&2
   read -r ANSWER
   case "$ANSWER" in
-    y|Y|yes|YES) : ;;
-    *) printf 'write-op-gate: declined\n' >&2; exit 4 ;;
+    y | Y | yes | YES) : ;;
+    *)
+      printf 'write-op-gate: declined\n' >&2
+      exit 4
+      ;;
   esac
 else
-  if (( YES != 1 )); then
+  if ((YES != 1)); then
     printf 'write-op-gate: non-TTY caller needs --yes to proceed\n' >&2
     exit 3
   fi
