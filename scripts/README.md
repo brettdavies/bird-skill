@@ -21,7 +21,7 @@ What it does:
 1. Runs the verb with `--dry-run --output json --quiet`.
 2. If the dry-run envelope is non-zero, surfaces `kind` + `exit_code` + `error` and exits 1.
 3. On a TTY, prompts `[y/N]`. Off-TTY, requires `--yes` or refuses with exit 3.
-4. `exec`s the verb again with `--output json` (no `--dry-run`) so the live response envelope lands on stdout.
+4. `exec`s the verb again with `--force --output json` (no `--dry-run`) so the live response envelope lands on stdout.
 
 Do NOT pass `--dry-run`, `--force`, `--yes`, `--output`, `--json`, or `--jsonl` in `<args>` — the gate controls them.
 The script refuses if any appear.
@@ -58,8 +58,9 @@ The xurl-rs skill ships a similar `dry-run-gate.sh`. They cover overlapping terr
   / `reason`). xurl-rs's envelope keys are `status` / `would_succeed` / `exit_code`. The dry-run preflight check is
   different per binary.
 - **Exit-code split**: bird uses BSD sysexits (0/1/2/77/78). xurl-rs has its own scheme.
-- **Default `--force` semantics**: bird treats `--force` as "skip confirmation"; the gate inserts the confirmation
-  before reaching `--force`, then doesn't pass it through (the live call is already gated).
+- **`--force` semantics**: bird treats `--force` as "skip confirmation" and, without it, refuses a non-TTY write with
+  exit 2 (`requires-confirmation`). The gate asks first, then passes `--force` on the live call so bird does not ask
+  again or refuse.
 
 If you have xurl-rs installed, its `dry-run-gate.sh` should be used for `xr` write verbs. Use bird's `write-op-gate.sh`
 for `bird` write verbs. They are not interchangeable.
