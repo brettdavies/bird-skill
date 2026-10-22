@@ -92,8 +92,10 @@ fi
 DRY_OUT=""
 DRY_ERR=""
 DRY_RC=0
-DRY_OUT=$(bird "$VERB" "$@" --dry-run --output json --quiet 2>/tmp/write-op-gate.preflight.err) || DRY_RC=$?
-DRY_ERR=$(cat /tmp/write-op-gate.preflight.err 2>/dev/null || true)
+DRY_ERR_FILE=$(mktemp)
+DRY_OUT=$(bird "$VERB" "$@" --dry-run --output json --quiet 2>"$DRY_ERR_FILE") || DRY_RC=$?
+DRY_ERR=$(cat "$DRY_ERR_FILE" 2>/dev/null || true)
+rm -f "$DRY_ERR_FILE"
 
 if ((DRY_RC != 0)); then
   printf 'write-op-gate: dry-run rejected (exit %d)\n' "$DRY_RC" >&2
