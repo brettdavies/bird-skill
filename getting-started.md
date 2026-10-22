@@ -131,7 +131,8 @@ markdown; [`references/escalation.md`](references/escalation.md) has the lookup 
 
 ## Reporting issues
 
-File bugs in bird itself and in this bundle (stale references, broken links, wrong invocations) at the bird repository:
+This repository's issue tracker is disabled. File bugs in bird itself and in this bundle (stale references, broken
+links, wrong invocations) at the bird repository:
 
 ➡️ **<https://github.com/brettdavies/bird/issues/new/choose>**
 

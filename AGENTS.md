@@ -72,7 +72,8 @@ edit `CHANGELOG.md` by hand. See [`RELEASES.md`](RELEASES.md) for the full relea
 
 ## Issues
 
-File issues against the upstream CLI:
+This repository has its issue tracker **disabled** (`has_issues: false`). File issues, and report vulnerabilities
+privately (see [`SECURITY.md`](SECURITY.md)), against the upstream CLI:
 
 ➡️ **<https://github.com/brettdavies/bird/issues/new/choose>**
 

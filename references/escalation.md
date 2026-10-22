@@ -26,8 +26,8 @@ Walk these in order. Stop at the first one that answers the question.
 8. **Official X docs** — every page supports markdown by appending `.md` to the URL. The index is
    <https://docs.x.com/llms.txt>. Use `defuddle` (or the agent's `fetch-web` skill) to clean MDX.
 9. **Upstream bird issues** — <https://github.com/brettdavies/bird/issues>. Skill-bundle issues (stale references, wrong
-   invocations, missing templates) live at <https://github.com/brettdavies/bird-skill/issues> with a `[skill]` prefix in
-   the title.
+   invocations, missing templates) live there too, with a `[skill]` prefix in the title; the bird-skill repository has
+   no issue tracker.
 10. **Ask the user** — last resort, only when the answer requires user-side context (which thread to post to, which
     account to act as, whether to proceed with a destructive op).
 
@@ -40,8 +40,8 @@ order above.
 This rule has two carve-outs so it doesn't over-constrain:
 
 - **Read-only probes are always fine** without asking the user: `bird --help`, `bird <cmd> --help`, `bird --examples`,
-  `bird <cmd> --examples`, `bird schema ...`, `bird doctor`, `bird cache stats`, `bird watchlist list`, `bird usage
-  --local`, `bird --version`, fetching a docs page from `docs.x.com/.../<page>.md`. Run them as needed.
+  `bird <cmd> --examples`, `bird schema ...`, `bird doctor`, `bird cache stats`, `bird watchlist list`,
+  `bird usage --local`, `bird --version`, fetching a docs page from `docs.x.com/.../<page>.md`. Run them as needed.
 - **bird's own contract** (output formats, exit codes 0/1/2/77/78, the error envelope keys, cache-mode flags, `--limit`
   / `--cursor` pagination, the `bird skill install` host list) is fine to cite from `bird --help` and this bundle. Those
   are stable per bird major version.
@@ -110,7 +110,7 @@ wastes a token refresh and an hour debugging an `auth-required` envelope.
 
 ## When to file a bug
 
-A finding worth filing as `[skill]`-prefixed issue at <https://github.com/brettdavies/bird-skill/issues>:
+A finding worth filing as a `[skill]`-prefixed issue at <https://github.com/brettdavies/bird/issues>:
 
 - This bundle references a flag, command, or output that no longer matches the installed `bird`.
 - A template's worked example is wrong.
