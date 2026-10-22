@@ -1,0 +1,63 @@
+name: CI
+
+# pull_request carries no branch filter so a PR stacked on another feature
+# branch runs CI too, not only the one based on dev or main.
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# The group key leads with a literal token naming the workflow that owns it. A
+# key built only from context (`${{ github.workflow }}`) is one a called
+# reusable also produces, because `github.workflow` resolves to the caller
+# inside a called workflow; both land in one group and the reusable's queue
+# cancels the run that called it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  markdownlint:
+    name: markdownlint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+      - run: bunx markdownlint-cli2 "**/*.md"
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run ShellCheck
+        # scripts/ ships to every install; tests/ and fixtures/bin/ do not
+        # reach consumers but must lint clean so the test loop stays
+        # trustworthy. At style severity every finding fails the step.
+        run: |
+          shellcheck --severity=style \
+            scripts/*.sh \
+            scripts/release/*.sh \
+            tests/*.sh \
+            fixtures/bin/bird
+
+  scripts-tests:
+    name: scripts-tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Guard test environments
+        run: bash tests/core-env-guard.sh
+      - name: Run fixture-driven tests
+        # The stub bird at fixtures/bin/bird replays envelopes the tests
+        # export; nothing reaches the X API. The gate needs jq, which the
+        # runner image ships.
+        run: bash tests/run.sh
