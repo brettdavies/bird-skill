@@ -8,8 +8,9 @@ The core rules are below; the producer-side workflow (repository shape, the test
 
 ## Issues
 
-File issues (bugs in `bird` itself, bugs in this skill bundle such as stale references, broken links, or wrong
-invocations, and proposals for new templates, references, or `getting-started` flows) against the upstream CLI:
+This repository's issue tracker is disabled. File issues (bugs in `bird` itself, bugs in this skill bundle such as stale
+references, broken links, or wrong invocations, and proposals for new templates, references, or `getting-started` flows)
+against the upstream CLI:
 
 ➡️ **[`brettdavies/bird` › New issue](https://github.com/brettdavies/bird/issues/new/choose)**
 
@@ -41,3 +42,7 @@ PRs against this repo are welcome: branch from `dev` and follow the workflow bel
 - **Vendored files are copies.** `scripts/generate-changelog.py`, `scripts/sync-dev-after-release.sh`,
   `scripts/release/`, `cliff.toml`, `tests/core-env-guard.sh`, and `.github/pull_request_template.md` come from the
   `github-repo-setup` skill or dotfiles; fix them at the source and re-vendor, never in place.
+
+## Security
+
+Report a vulnerability privately, not as an issue: see [`SECURITY.md`](SECURITY.md).
