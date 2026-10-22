@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# tests/run.sh: fixture-driven tests for scripts/write-op-gate.sh. Each test
-# puts the stub `bird` (fixtures/bin/bird) first on PATH, invokes the script
-# with stdin from /dev/null (a non-TTY caller), and asserts on the exit code,
-# stdout and stderr substrings, and the argv the stub recorded.
+# tests/run.sh: fixture-driven tests for scripts/write-op-gate.sh and
+# bin/check-update. Each gate test puts the stub `bird` (fixtures/bin/bird)
+# first on PATH, invokes the script with stdin from /dev/null (a non-TTY
+# caller), and asserts on the exit code, stdout and stderr substrings, and the
+# argv the stub recorded.
 #
 # The stub writes a body with exit 0 to stdout and a body with a non-zero
 # exit to stderr, which is how the real binary splits success envelopes from
@@ -212,6 +213,92 @@ test_gate__keeps_no_preflight_file_at_a_fixed_path() {
     rm -f "$fixed"
     return 1
   fi
+}
+
+# --- bin/check-update tests ------------------------------------------------------
+#
+# Each test points the script at a scratch skill dir, state dir, and a file://
+# remote VERSION through its BIRD_SKILL_* overrides, so nothing reaches the
+# network or the real ~/.cache.
+
+CU_ROOT=""
+
+cu_setup() {
+  CU_ROOT=$(mktemp -d)
+  mkdir -p "$CU_ROOT/skill" "$CU_ROOT/state"
+  export BIRD_SKILL_DIR="$CU_ROOT/skill"
+  export BIRD_SKILL_STATE_DIR="$CU_ROOT/state"
+  export BIRD_SKILL_REMOTE_URL="file://$CU_ROOT/remote-VERSION"
+  [ -n "${1:-}" ] && printf '%s\n' "$1" >"$CU_ROOT/skill/VERSION"
+  [ -n "${2:-}" ] && printf '%s\n' "$2" >"$CU_ROOT/remote-VERSION"
+  return 0
+}
+
+cu_teardown() {
+  rm -rf "$CU_ROOT"
+  unset BIRD_SKILL_DIR BIRD_SKILL_STATE_DIR BIRD_SKILL_REMOTE_URL
+}
+
+test_check_update__reports_a_newer_remote() {
+  cu_setup 0.1.0 0.2.0
+  run_script bash "$ROOT/bin/check-update"
+  local cached
+  cached=$(cat "$CU_ROOT/state/last-update-check")
+  cu_teardown
+  assert_exit 0 || return 1
+  assert_stdout_equals 'UPGRADE_AVAILABLE 0.1.0 0.2.0' || return 1
+  [ "$cached" = 'UPGRADE_AVAILABLE 0.1.0 0.2.0' ] || {
+    printf '    cache holds: %s\n' "$cached" >&2
+    return 1
+  }
+}
+
+test_check_update__is_silent_when_up_to_date() {
+  cu_setup 0.2.0 0.2.0
+  run_script bash "$ROOT/bin/check-update"
+  local cached
+  cached=$(cat "$CU_ROOT/state/last-update-check")
+  cu_teardown
+  assert_exit 0 || return 1
+  assert_stdout_empty || return 1
+  [ "$cached" = 'UP_TO_DATE 0.2.0' ] || {
+    printf '    cache holds: %s\n' "$cached" >&2
+    return 1
+  }
+}
+
+test_check_update__is_silent_without_a_local_version() {
+  cu_setup '' 0.2.0
+  run_script bash "$ROOT/bin/check-update"
+  cu_teardown
+  assert_exit 0 || return 1
+  assert_stdout_empty || return 1
+}
+
+test_check_update__is_silent_when_disabled() {
+  cu_setup 0.1.0 0.2.0
+  touch "$CU_ROOT/state/disabled"
+  run_script bash "$ROOT/bin/check-update"
+  cu_teardown
+  assert_exit 0 || return 1
+  assert_stdout_empty || return 1
+}
+
+test_check_update__honors_a_snooze_for_that_version() {
+  cu_setup 0.1.0 0.2.0
+  printf '0.2.0 1 %s\n' "$(date +%s)" >"$CU_ROOT/state/update-snoozed"
+  run_script bash "$ROOT/bin/check-update"
+  cu_teardown
+  assert_exit 0 || return 1
+  assert_stdout_empty || return 1
+}
+
+test_check_update__ignores_a_remote_that_is_not_a_version() {
+  cu_setup 0.1.0 '<html>404</html>'
+  run_script bash "$ROOT/bin/check-update"
+  cu_teardown
+  assert_exit 0 || return 1
+  assert_stdout_empty || return 1
 }
 
 # --- Runner --------------------------------------------------------------------

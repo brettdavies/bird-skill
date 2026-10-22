@@ -14,6 +14,19 @@ covering xurl status, auth state, command availability, and store health.
 bird does **not** implement HTTP or OAuth itself. Every API call shells out to `xr` (xurl-rs) or `xurl` (Go fallback) at
 runtime. Discovery order: `BIRD_XURL_PATH` env → `xr` on `$PATH` → `xurl` on `$PATH`. Minimum xurl version: 1.0.3.
 
+## First action: update check
+
+Run once per session, before other work, from the directory this file is installed in (`~/.claude/skills/bird` for
+Claude Code; [references/skill-install.md](references/skill-install.md) lists the other hosts):
+
+```bash
+bash ~/.claude/skills/bird/bin/check-update
+```
+
+Empty output: continue. `UPGRADE_AVAILABLE <local> <remote>`: ask the user whether to update. The prompt, the snooze
+ladder, and the state files are in [references/update-check.md](references/update-check.md). The exit code is always
+`0`.
+
 ## Sibling skills — install if you don't have them
 
 Two companion skills cover ground this skill deliberately does NOT duplicate. Reach for them when the task crosses their
@@ -45,8 +58,8 @@ Before any write op:
 bird ships an explicit confirmation gate for no-TTY callers: a write op without `--force`/`--yes` exits **2**
 (`requires-confirmation`) rather than hanging. See `scripts/write-op-gate.sh` below for the wrapper.
 
-Read ops (`me`, `bookmarks`, `profile`, `search`, `thread`, `get`, `watchlist list`, `watchlist fetch`, `usage`, `cache
-stats`, `doctor`, `schema`) are safe to run without confirmation.
+Read ops (`me`, `bookmarks`, `profile`, `search`, `thread`, `get`, `watchlist list`, `watchlist fetch`, `usage`,
+`cache stats`, `doctor`, `schema`) are safe to run without confirmation.
 
 ## Quick start — let the binary teach you
 
@@ -90,13 +103,13 @@ README.
 2. **Never run a live write op without confirming scope with the user first**, OR without a successful `--dry-run` pass
    against the exact same flags first.
 3. **Never paste credentials into chat, commits, PRs, or shell history.** bird does not store tokens; xurl does. Re-auth
-   through `bird login` (delegates to xurl) or `xr auth oauth2`. Pass any inline secret through env vars (`$(op read
-   op://...)`).
+   through `bird login` (delegates to xurl) or `xr auth oauth2`. Pass any inline secret through env vars
+   (`$(op read op://...)`).
 4. **Never re-implement xr functionality inside bird workflows.** If a task needs raw HTTP, streaming, OAuth1 signing,
    or media upload — that's xr's job. Defer to the `xurl-rs` skill.
 5. **Read-only probes are always fine** without asking the user: `bird --help`, `bird <cmd> --help`, `bird --examples`,
-   `bird <cmd> --examples`, `bird schema ...`, `bird doctor`, `bird cache stats`, `bird usage --local`, `bird watchlist
-   list`. Run them as needed.
+   `bird <cmd> --examples`, `bird schema ...`, `bird doctor`, `bird cache stats`, `bird usage --local`,
+   `bird watchlist list`. Run them as needed.
 
 ## Common flag patterns
 
@@ -162,6 +175,8 @@ If `auth.authenticated: false`, run `bird login` to bounce through xurl's OAuth2
   clone, supported hosts, dry-run.
 - [references/xr-bridge.md](references/xr-bridge.md) — what bird delegates to xr, the `BIRD_XURL_PATH` override, when to
   reach for the `xurl-rs` skill instead.
+- [references/update-check.md](references/update-check.md): `bin/check-update`'s output, the update prompt, the snooze
+  ladder, and its state files.
 
 ## Templates
 

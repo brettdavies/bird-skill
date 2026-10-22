@@ -39,11 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run ShellCheck
-        # scripts/ ships to every install; tests/ and fixtures/bin/ do not
-        # reach consumers but must lint clean so the test loop stays
+        # scripts/ and bin/ ship to every install; tests/ and fixtures/bin/
+        # do not reach consumers but must lint clean so the test loop stays
         # trustworthy. At style severity every finding fails the step.
         run: |
           shellcheck --severity=style \
+            bin/check-update \
             scripts/*.sh \
             scripts/release/*.sh \
             tests/*.sh \
