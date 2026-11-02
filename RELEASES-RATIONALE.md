@@ -33,16 +33,16 @@ shipping.
 Always cut the release branch from `origin/main` and bring `dev`'s content onto it as a forward diff, never by
 reconciling histories. The default is the whole-tree overlay (`git checkout origin/dev -- .`, then strip the guarded
 set): `main` ships `dev`'s tree minus a small, known exclusion set, so asserting that end-state directly is simpler and
-safer than hand-resolving a merge. The overlay commit carries no per-PR history, so the changelog is built from the
-PRs merged into `dev` since the previous release (`generate-changelog.py --from-dev-prs`) rather than from the
-branch's commits; the result is the same per-PR section a cherry-picked branch would yield. Cherry-picking the dev
-squash-commits is kept only as an exception for a repo with a stated reason it cannot overlay, at the cost of
-guarded-path conflict handling.
+safer than hand-resolving a merge. The overlay commit carries no per-PR history, so the changelog is built from the PRs
+merged into `dev` since the previous release (`generate-changelog.py --from-dev-prs`) rather than from the branch's
+commits; the result is the same per-PR section a cherry-picked branch would yield. Cherry-picking the dev squash-commits
+is kept only as an exception for a repo with a stated reason it cannot overlay, at the cost of guarded-path conflict
+handling.
 
 Either way, the release must start from a `main` that `dev` fully contains. Security PRs, hotfixes, and config edits
 land on `main` first, and both constructions take `dev`'s content for the files they touch, so anything `main` holds
-that `dev` never received is reverted by the release. `scripts/release/drift.sh` lists that set and the cut waits
-until it is empty.
+that `dev` never received is reverted by the release. `scripts/release/drift.sh` lists that set and the cut waits until
+it is empty.
 
 ### Why `main` is the default branch + release pointer
 
@@ -101,9 +101,9 @@ findings against split lines.
 
 ### Why internal-tooling commits don't appear in `## Changelog`
 
-`chore(cliff): ...`, `chore(ci): ...`, and similar internal-tooling commits don't appear in the PR body's `##
-Changelog`. They are not user-facing. They belong in commit history and in the Files Modified section of the PR body,
-not in the source-of-truth release notes.
+`chore(cliff): ...`, `chore(ci): ...`, and similar internal-tooling commits don't appear in the PR body's
+`## Changelog`. They are not user-facing. They belong in commit history and in the Files Modified section of the PR
+body, not in the source-of-truth release notes.
 
 ## Triple-diff verification
 
@@ -117,20 +117,20 @@ keeps diff A (staged tree vs `dev`), the leak check, and step D; B and C are moo
 `guard-main-docs` is what CI enforces on a PR to `main`: the reusable workflow's hardcoded base list plus this repo's
 `extra_paths`. Every hand-kept copy of that union (runbook, checklist, preflight script) drifted from it, and a copy
 that omits a guarded path reports a real leak as clean while CI turns red after the push.
-`scripts/release/guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so
-registering a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still
-needs a manual edit when the reusable changes, because it lives in another repo. Entries are globs with one rule set
-shared by the reusable and the script (`**/` any depth, `*` and `?` within a segment, trailing slash guards the
-subtree), so `**/.agent/` guards that directory wherever it appears and the two never disagree about what is guarded.
+`scripts/release/guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so registering
+a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still needs a
+manual edit when the reusable changes, because it lives in another repo. Entries are globs with one rule set shared by
+the reusable and the script (`**/` any depth, `*` and `?` within a segment, trailing slash guards the subtree), so
+`**/.agent/` guards that directory wherever it appears and the two never disagree about what is guarded.
 
 ### Why the release enumerates what it adds
 
-The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A
-new engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D
-lists every `docs/` file and every markdown file the release adds to `main` outside the guarded set and puts them in
-front of a human; each one needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch.
-Root-level markdown is in scope because an agent-facing glossary at the repo root is exactly the kind of addition a
-`docs/`-only listing misses, and for a skill bundle every root markdown file ships to consumers.
+The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A new
+engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D lists
+every `docs/` file and every markdown file the release adds to `main` outside the guarded set and puts them in front of
+a human; each one needs a reason to ship, or it gets registered in `extra_paths` and dropped from the branch. Root-level
+markdown is in scope because an agent-facing glossary at the repo root is exactly the kind of addition a `docs/`-only
+listing misses, and for a skill bundle every root markdown file ships to consumers.
 
 ### Why patch-id cherry-check output is noisy
 
@@ -161,15 +161,17 @@ action). Otherwise cherry-pick the commit and re-run the triple-diff.
 
 `scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
 only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
-merged into `dev` since the previous release are the entries, and each PR's body supplies its `## Changelog → ###
-Breaking changes / Added / Changed / Fixed / Documentation` subsections (with author and PR-link attribution). On a
-cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's commits, then expands
-the same way.
+merged into `dev` since the previous release are the entries, and each PR's body supplies its
+`## Changelog → ### Breaking changes / Added / Changed / Deprecated / Removed / Fixed / Documentation` subsections (with
+author and PR-link attribution). On a cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from
+the branch's commits, then expands the same way.
 
-If a PR's body has no `## Changelog` section at all, its title becomes a `Changed` bullet, except for `chore`, `ci`,
-`build`, `style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. A PR that keeps the
-`## Changelog` heading and leaves it empty has declared nothing user-facing and adds nothing. To fix a wrong CHANGELOG
-entry, fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
+If a PR's body has no `## Changelog` section at all, its title becomes a bullet under the group its type maps to
+(`type!:` under Breaking changes, `feat` under Added, `fix` under Fixed, `docs` under Documentation, anything else under
+Changed), except for `chore`, `ci`, `build`, `style`, and `test` PRs, which stay out unless they carry a `## Changelog`
+of their own, and the `release:` PR, which is bookkeeping. A PR that keeps the `## Changelog` heading and leaves it
+empty has declared nothing user-facing and adds nothing. To fix a wrong CHANGELOG entry, fix the input: edit the
+squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
 
 `scripts/generate-changelog.py --check` verifies that `CHANGELOG.md` has a versioned section (not just `[Unreleased]`).
 This repo has no release-branch CI job; the check is a [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) row.
@@ -189,8 +191,8 @@ Always use annotated tags (`-a -m`). Bare `git tag <name>` silently fails with `
 where `tag.gpgsign=true` is set globally.
 
 `bird-skill` has no tag-triggered workflow. The bundle is markdown plus one shell script, so there is nothing to
-compile, publish to a registry, or bottle. The release is the annotated tag plus a GitHub Release created with `gh
-release create`, whose notes are the matching `CHANGELOG.md` section. The GitHub Release is not decorative:
+compile, publish to a registry, or bottle. The release is the annotated tag plus a GitHub Release created with
+`gh release create`, whose notes are the matching `CHANGELOG.md` section. The GitHub Release is not decorative:
 `scripts/sync-dev-after-release.sh` refuses to backport until it exists and is not a draft, because a tag without a
 Release is invisible to `gh release view` and to anyone browsing the releases page.
 
@@ -202,10 +204,10 @@ Once the GitHub Release is published, the release-bookkeeping files on `main` (`
 touched `dev`.
 
 The backport is a PR opened by `scripts/sync-dev-after-release.sh`, never a merge of `main` into `dev` and never a
-direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides
-touched, and a direct push to `dev` bypasses its required status checks. The script writes the released version into
-every version carrier present (for this repo, `VERSION`, which it creates on the first run), copies `CHANGELOG.md` from
-`main` when `main` carries one, and opens the PR. The diff is mechanical, so reviewers can spot-check and squash-merge as
+direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides touched,
+and a direct push to `dev` bypasses its required status checks. The script writes the released version into every
+version carrier present (for this repo, `VERSION`, which it creates on the first run), copies `CHANGELOG.md` from `main`
+when `main` carries one, and opens the PR. The diff is mechanical, so reviewers can spot-check and squash-merge as
 usual.
 
 A release branch also takes edits nobody predicts (a doc fix, a reverted payload, a deleted config). Each is made
@@ -213,22 +215,22 @@ against `main`'s base, so it reaches `dev` only through the backport; left behin
 `dev`'s copy over it and silently undoes the edit. A fixed list of files misses these, so the script discovers every
 path the two branches disagree about. The previous release tag bounds that discovery, because it is the last point the
 branches agreed: a path `dev` has not touched since the tag is release-prep and is adopted, while a path both sides
-moved is contested and is only reported, so widening the copy cannot revert `dev`'s unreleased work. The operator
-adopts contested paths by name (`--only`) or all at once (`--include-contested`). Guarded paths (the engineering docs)
-never enter discovery, so the backport cannot remove them.
+moved is contested and is only reported, so widening the copy cannot revert `dev`'s unreleased work. The operator adopts
+contested paths by name (`--only`) or all at once (`--include-contested`). Guarded paths (the engineering docs) never
+enter discovery, so the backport cannot remove them.
 
-The script is idempotent: it exits 0 without creating a branch or PR when the synced files already match `main`. Safe
-to re-run, safe to invoke from automation that doesn't track whether the last release was already backported.
+The script is idempotent: it exits 0 without creating a branch or PR when the synced files already match `main`. Safe to
+re-run, safe to invoke from automation that doesn't track whether the last release was already backported.
 
 ### Rollback
 
-Rollback happens at the surface users consume, not by rewriting history. For most repos that surface is a deployment,
-a registry, or a formula, and re-pointing it is fast and reversible while rewriting `main` is neither. For
-`bird-skill` the surface **is** `main`: every `bird skill update` is a fresh depth-1 clone of the default branch, so
-the only way to change what consumers receive is to move `main` forward. A rollback is therefore a revert release:
-`git revert` of the bad squash commit on a `release/*` branch, through the normal PR to `main`, then a new tag. The
-release flow exists so that `main` only ever moves forward through a PR, and the rollback respects that. Recording the
-last-good tag before the release goes out is what makes the revert a single command under incident pressure.
+Rollback happens at the surface users consume, not by rewriting history. For most repos that surface is a deployment, a
+registry, or a formula, and re-pointing it is fast and reversible while rewriting `main` is neither. For `bird-skill`
+the surface **is** `main`: every `bird skill update` is a fresh depth-1 clone of the default branch, so the only way to
+change what consumers receive is to move `main` forward. A rollback is therefore a revert release: `git revert` of the
+bad squash commit on a `release/*` branch, through the normal PR to `main`, then a new tag. The release flow exists so
+that `main` only ever moves forward through a PR, and the rollback respects that. Recording the last-good tag before the
+release goes out is what makes the revert a single command under incident pressure.
 
 Marking the bad GitHub Release as a pre-release afterwards keeps `gh release view` and the releases page from
 advertising it as latest; it does not change what consumers clone.

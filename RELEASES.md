@@ -56,19 +56,22 @@ The standard feature → PR → squash-merge flow remains required for everythin
 
 ## PR body
 
-Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` verbatim. Six sections, no inventions:
-`## Summary`, `## Changelog`, `## Type of Change`, `## Related Issues/Stories`, `## Files Modified`, `## Testing`.
+Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` verbatim. Six required sections, in
+template order, no inventions: `## Summary`, `## Changelog`, `## Type of Change`, `## Related Issues/Stories`,
+`## Testing`, `## Files Modified`. The template's other sections (`## Key Features`, `## Benefits`,
+`## Breaking Changes`, `## Deployment Notes`, `## Screenshots/Recordings`, `## Checklist`, `## Additional Context`) are
+optional: fill `## Breaking Changes` on a major, delete the rest when they do not apply.
 
 - **No explainer prose anywhere in the body.** User-facing substance only.
 - **Summary describes the net diff only**: what merged `main` looks like vs the base branch. Not commit history,
   intermediate state, or overlay mechanics.
 - **Zero verification artifacts in the body.** No diff stats, leak-check output, patch-id cherry-check counts, pre-push
   gate results, CI status, or prose-scrub findings. Anomalies get fixed before push, not audit-trailed.
-- **Changelog** subsections (`### Added` / `### Changed` / `### Fixed` / `### Documentation`): 1-5 bullets each, delete
-  empty subsections, each bullet starts with a verb. `scripts/generate-changelog.py` extracts these bullets verbatim
-  into `CHANGELOG.md`. A PR that lands with an empty `## Changelog` contributes nothing; only a PR whose body has no
-  `## Changelog` section at all contributes its title, and not even then for `chore`, `ci`, `build`, `style`, or
-  `test` PRs.
+- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Removed` /
+  `### Fixed` / `### Documentation`, in that order): 1-5 bullets each, delete empty subsections, each bullet starts with
+  a verb. `scripts/generate-changelog.py` extracts these bullets verbatim into `CHANGELOG.md`. A PR that lands with an
+  empty `## Changelog` contributes nothing; only a PR whose body has no `## Changelog` section at all contributes its
+  title, and not even then for `chore`, `ci`, `build`, `style`, or `test` PRs.
 - **Type of Change**: one checkbox. Prefer `feat`/`fix` over `chore` for any user-observable change.
 - **Related Issues/Stories**: four labels (`Story:` / `Issue:` / `Architecture:` / `Related PRs:`). All four required
   even when empty (`- None.` / `n/a`).
@@ -159,8 +162,8 @@ with zero conflicts. Auto-delete removes `release/v<version>` from the remote on
 
 ### Exception: cherry-pick
 
-The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main`
-base is an exception for a repo with a stated reason it cannot overlay; `bird-skill` has none, so this section is the
+The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main` base
+is an exception for a repo with a stated reason it cannot overlay; `bird-skill` has none, so this section is the
 fallback recipe, not the default. When cherry-picking, run the triple-diff verification:
 
 ```bash
@@ -216,8 +219,8 @@ git cherry-pick --continue --no-edit
 ```
 
 Repeat per conflicting commit. After all picks land, run `git ls-files | grep -E "$(scripts/release/guarded-paths.sh)"`.
-If anything remains, drop it with the same two-step pattern and commit as `chore(release): drop stray plan spikes from
-cherry-pick rename detection` before the leak check.
+If anything remains, drop it with the same two-step pattern and commit as
+`chore(release): drop stray plan spikes from cherry-pick rename detection` before the leak check.
 
 ## Tagging and publishing
 
@@ -241,9 +244,9 @@ exists and is not a draft, so the release step is not optional.
 
 ### After publish: sync `dev` with the release
 
-Once the GitHub Release is published, bring the release bookkeeping (`VERSION`, `CHANGELOG.md`) and any edit made on
-the release branch back to `dev` so the integration branch starts from the released baseline. Preview it first:
-`--dry-run` prints what the sync would carry, creates no branch, and leaves the tree clean.
+Once the GitHub Release is published, bring the release bookkeeping (`VERSION`, `CHANGELOG.md`) and any edit made on the
+release branch back to `dev` so the integration branch starts from the released baseline. Preview it first: `--dry-run`
+prints what the sync would carry, creates no branch, and leaves the tree clean.
 
 ```bash
 scripts/sync-dev-after-release.sh v<version> --dry-run
@@ -341,8 +344,8 @@ regenerate. Hand-editing `CHANGELOG.md` directly produces drift the next regener
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
 - `ruleset-protect-main.json` (required signatures, linear history, squash-only merges via PR, required status checks
-  `guard-docs / check-forbidden-docs`, `guard-release / check-release-branch-name`, `guard-provenance /
-  check-provenance`, `markdownlint`; creation/deletion blocked, non-fast-forward blocked).
+  `guard-docs / check-forbidden-docs`, `guard-release / check-release-branch-name`,
+  `guard-provenance / check-provenance`, `markdownlint`; creation/deletion blocked, non-fast-forward blocked).
 - `ruleset-protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked). PR-only norm is
   convention + `guard-release-branch` on the main side.
 
