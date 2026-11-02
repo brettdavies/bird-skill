@@ -1,3 +1,5 @@
+# Canonical version: 2026.10.02 (generic)
+#
 # Dependabot configuration.
 #
 # One package ecosystem: github-actions for workflow actions. The bundle is
@@ -37,8 +39,6 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 3
-    reviewers:
-      - brettdavies
     labels:
       - dependencies
       - github-actions
