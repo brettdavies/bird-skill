@@ -33,6 +33,7 @@ against the stub in `fixtures/`; a claim about what `bird` emits is checked by r
 | `fixtures/`          | The stub `bird` that `tests/run.sh` puts on `PATH`; it models the real streams (success on stdout, error envelope on stderr with the exit code) and the non-TTY write refusal.       |
 | `evals/`             | Self-contained eval prompts dispatched against a fresh agent session. Producer.                                                                                                      |
 | `.github/`           | Workflows, rulesets, PR template, Dependabot, `CODEOWNERS`.                                                                                                                          |
+| `docs/solutions/`    | When present, a local symlink to a shared archive of past solutions kept outside this repo: learnings by category, with YAML frontmatter (`module`, `tags`, `problem_type`).         |
 
 The whole repository is the install: `bird skill install <host>` clones it, so producer-side files ride along. Nothing
 in `SKILL.md` points an agent at them.
