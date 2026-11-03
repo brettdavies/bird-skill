@@ -94,8 +94,12 @@ This repo carries no lockfile, so gate 3 SKIPs; it becomes live the day one is a
   bullet to that PR's body before the cut.
 - [ ] **Downstream consumers ready.** The `bird` binary's `skill install` points at this repo's `main`; a bundle layout
   change that moves `SKILL.md` or `scripts/` breaks every host's discovery path. If `bird` is not ready, hold the tag.
-- [ ] **Version-cross references.** The `bird` version pinned in `README.md` (`Requires bird v<MIN>`) matches the
-  surface the skill teaches. A new `bird` flag documented in `SKILL.md` or `references/` bumps the pin in lockstep.
+- [ ] **Documented `bird` release.** The bundle documents the latest `bird` GitHub release, the one
+  `brew install brettdavies/tap/bird` installs, and nothing pins it to a binary version
+  ([`AGENTS.md` § Documented contract](./AGENTS.md#documented-contract)). Every passage this release changes that names
+  a `bird` command, flag, exit code, or envelope key matches that release, checked against the binary as
+  [`AGENTS.md` § Refreshing the bundle against a new `bird`](./AGENTS.md#refreshing-the-bundle-against-a-new-bird)
+  describes.
 - [ ] **Install-path destinations.** Every install URL or path the release will resolve to (the six host destinations
   in `references/skill-install.md`) actually exists on a `bird` that ships today.
 
@@ -197,13 +201,13 @@ runs the same lint job, but the script smoke is not in CI and is the most likely
 
   Reserve the actual run for after the tag pushes ([`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) covers it).
 
-- [ ] **`bird --version` ≥ the minimum pinned in `README.md`.** The skill teaches an agent how to drive `bird`. If
-  `README.md` documents `Requires bird v<MIN>`, the locally-installed `bird` must satisfy it before shipping. Otherwise
-  users following the install instructions get a tool that mismatches the skill's expectations.
+- [ ] **Local `bird` is the latest release.** The checks that run `bird` read the release the bundle documents, so
+  the local `bird --version` names the tag of `brettdavies/bird`'s latest GitHub release. Upgrade with
+  `brew upgrade brettdavies/tap/bird` when it trails.
 
   ```bash
-  bird --version
-  rg '^Requires `bird` v' README.md                  # pin lives here; bump in lockstep with skill content
+  bird --version                                                 # bird X.Y.Z
+  gh api repos/brettdavies/bird/releases/latest --jq .tag_name   # vX.Y.Z
   ```
 
 - [ ] **`SKILL.md` references resolve.** Every `references/<file>` or `scripts/<file>` mentioned in `SKILL.md`
