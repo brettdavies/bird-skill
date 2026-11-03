@@ -162,9 +162,9 @@ action). Otherwise cherry-pick the commit and re-run the triple-diff.
 `scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
 only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
 merged into `dev` since the previous release are the entries, and each PR's body supplies its
-`## Changelog → ### Breaking changes / Added / Changed / Deprecated / Fixed / Documentation` subsections (with
-author and PR-link attribution). On a cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from
-the branch's commits, then expands the same way.
+`## Changelog → ### Breaking changes / Added / Changed / Deprecated / Fixed / Documentation` subsections (with author
+and PR-link attribution). On a cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the
+branch's commits, then expands the same way.
 
 If a PR's body has no `## Changelog` section at all, its title becomes a bullet under the group its type maps to
 (`type!:` under Breaking changes, `feat` under Added, `fix` under Fixed, `docs` under Documentation, anything else under
@@ -228,9 +228,13 @@ Rollback happens at the surface users consume, not by rewriting history. For mos
 registry, or a formula, and re-pointing it is fast and reversible while rewriting `main` is neither. For `bird-skill`
 the surface **is** `main`: every `bird skill update` is a fresh depth-1 clone of the default branch, so the only way to
 change what consumers receive is to move `main` forward. A rollback is therefore a revert release: `git revert` of the
-bad squash commit on a `release/*` branch, through the normal PR to `main`, then a new tag. The release flow exists so
-that `main` only ever moves forward through a PR, and the rollback respects that. Recording the last-good tag before the
-release goes out is what makes the revert a single command under incident pressure.
+bad squash commit lands on `dev` as a PR, then ships through the normal release cut and a new tag. The release flow
+exists so that `main` only ever moves forward through a PR, and the rollback respects that. The revert goes through
+`dev` for two reasons. Its PR's changelog sections are what `generate-changelog.py --bump` reads, so the revert's
+version follows the six headings like any other release: taking back a surface the bad release added is a breaking
+change, not a patch. And `dev` stops carrying the reverted content, so the next overlay cannot ship it again. Recording
+the last-good tag and the release's squash SHA before the release goes out is what lets the revert start at once under
+incident pressure.
 
 Marking the bad GitHub Release as a pre-release afterwards keeps `gh release view` and the releases page from
 advertising it as latest; it does not change what consumers clone.

@@ -370,22 +370,26 @@ yank; the rollback is a revert release. Knowing the last-good tag before the rel
 [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) gate.
 
 ```bash
-# 1. Cut a release branch from main and revert the bad release's squash commit.
+# 1. Revert the bad release on dev, keeping dev's release bookkeeping, and PR it to dev.
+#    Its ## Changelog files what the revert takes back under § The six headings: a surface
+#    the bad release added is a `### Breaking changes` "Remove" bullet, one it removed is
+#    `### Added`, and anything outside the contract is `### Changed` or left out.
 git fetch origin
-git checkout -B release/v<next-patch> origin/main
-git revert --no-edit <bad-release-squash-sha>
+git checkout -b fix/revert-v<bad-version> origin/dev
+git revert --no-commit <bad-release-squash-sha>
+git checkout origin/dev -- VERSION CHANGELOG.md
+git commit
 
-# 2. Bump VERSION, regenerate the changelog, and ship through the normal PR to main.
-printf '%s\n' '<next-patch>' > VERSION
-scripts/generate-changelog.py --tag v<next-patch>
-git add -A && git commit
-git push -u origin release/v<next-patch>
-gh pr create --base main --head release/v<next-patch> --title "release: v<next-patch>" --body-file /tmp/body.md
+# 2. Cut the revert release per § Releasing dev to main once that PR merges. Step 1's --bump
+#    computes its version from the revert's sections and those of any other PR dev carries.
 
 # 3. Tag and publish per § Tagging and publishing, then mark the bad GitHub Release as a pre-release so
 #    `gh release view` and the releases page stop advertising it as latest.
 gh release edit v<bad-version> --prerelease
 ```
+
+The revert release ships `dev`'s tree, so every PR merged into `dev` since the bad release ships with it. Revert or hold
+on `dev` first any PR that must not ship yet.
 
 Consumers who already updated onto the bad release recover with `bird skill update <host>` once the revert release is on
 `main`. The `fix/*` that addresses the underlying defect lands through `dev` afterwards like any other change.
