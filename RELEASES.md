@@ -1,3 +1,4 @@
+<!-- canonical: version-scheme semver -->
 # Releasing `bird-skill`
 
 Operational runbook. Rationale lives in [`RELEASES-RATIONALE.md`](./RELEASES-RATIONALE.md). Pre-cut go/no-go checklist
@@ -67,11 +68,11 @@ optional: fill `## Breaking Changes` on a major, delete the rest when they do no
   intermediate state, or overlay mechanics.
 - **Zero verification artifacts in the body.** No diff stats, leak-check output, patch-id cherry-check counts, pre-push
   gate results, CI status, or prose-scrub findings. Anomalies get fixed before push, not audit-trailed.
-- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Removed` /
-  `### Fixed` / `### Documentation`, in that order): 1-5 bullets each, delete empty subsections, each bullet starts with
-  a verb. `scripts/generate-changelog.py` extracts these bullets verbatim into `CHANGELOG.md`. A PR that lands with an
-  empty `## Changelog` contributes nothing; only a PR whose body has no `## Changelog` section at all contributes its
-  title, and not even then for `chore`, `ci`, `build`, `style`, or `test` PRs.
+- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Fixed` /
+  `### Documentation`, the six headings of [§ Versioning](#versioning)): 1-5 bullets each, delete empty subsections,
+  each bullet starts with a verb. `scripts/generate-changelog.py` extracts these bullets verbatim into `CHANGELOG.md`. A
+  PR that lands with an empty `## Changelog` contributes nothing; only a PR whose body has no `## Changelog` section at
+  all contributes its title, and not even then for `chore`, `ci`, `build`, `style`, or `test` PRs.
 - **Type of Change**: one checkbox. Prefer `feat`/`fix` over `chore` for any user-observable change.
 - **Related Issues/Stories**: four labels (`Story:` / `Issue:` / `Architecture:` / `Related PRs:`). All four required
   even when empty (`- None.` / `n/a`).
@@ -81,6 +82,82 @@ optional: fill `## Breaking Changes` on a major, delete the rest when they do no
 - **No hard line wraps**: one logical line per paragraph or bullet.
 
 → Rationale: [`RELEASES-RATIONALE.md` § PR body conventions](./RELEASES-RATIONALE.md#pr-body-conventions).
+
+## Versioning
+
+The marked lines below are github-repo-setup's SemVer section of `references/versioning.md`, which the drift check
+compares, and line 1 declares the scheme. This repo vendors neither `cut-release-branch.sh` nor `preflight.sh`: step 4
+of [§ Releasing dev to main](#releasing-dev-to-main) runs `scripts/generate-changelog.py --bump` for the version, and
+the 1.0+ migration-guide check is made by hand until a script carries it.
+
+<!-- canonical:begin versioning-semver -->
+
+This repo follows [SemVer 2.0.0](https://semver.org/). Its version comes from its changelog: every PR files each
+user-facing change under one of the six headings below, and a release takes the highest bump any of its PRs calls for.
+The rules cover only the surfaces § What the contract is names.
+
+### What the contract is
+
+<!-- canonical:repo-begin contract -->
+
+The bundle's contract is what an installed copy exposes to the host and the agent that load it:
+
+- **Install layout:** the repository root is the skill root, with `SKILL.md` at its top under the frontmatter
+  `name: bird`, and `VERSION` beside it. `bird skill install <host>` clones the repository into the host's `bird` skill
+  directory ([`references/skill-install.md`](./references/skill-install.md)).
+- **`bin/check-update`:** its path, its stdout (nothing, or one `UPGRADE_AVAILABLE <local> <remote>` line), its exit
+  code (always `0`), and its state files under `$HOME/.cache/bird-skill/`
+  ([`references/update-check.md`](./references/update-check.md)).
+- **`scripts/write-op-gate.sh`:** its invocation, `write-op-gate.sh [--yes] -- bird <write-verb> [args...]`, the
+  arguments it refuses, and its exit codes `0` to `4` plus the live call's own.
+- **`VERSION`:** one `X.Y.Z` line, which `bin/check-update` compares with the `VERSION` on `main`.
+
+The wording of `SKILL.md` and its description, the files under `references/` and `templates/` and their paths, the
+evals, and the producer-side files (`tests/`, `fixtures/`, the release scripts, the runbooks) are not contract. What the
+bundle says about `bird` itself documents `bird`'s contract, which `bird`'s own releases version.
+
+<!-- canonical:repo-end -->
+
+### The six headings
+
+| Heading            | Holds                                                                   | Bump  |
+| ------------------ | ----------------------------------------------------------------------- | ----- |
+| `Breaking changes` | a contract surface removed, renamed, or retyped, or its meaning changed | major |
+| `Added`            | a new contract surface                                                  | minor |
+| `Changed`          | a visible change outside the contract                                   | patch |
+| `Deprecated`       | a contract surface marked for removal                                   | minor |
+| `Fixed`            | behavior brought back to the documented contract                        | patch |
+| `Documentation`    | documentation only                                                      | patch |
+
+`generate-changelog.py` writes them in this order and any other heading after them. A contract removal is a
+`Breaking changes` bullet that starts with "Remove"; a removal outside the contract goes under `Changed`, or is left
+out. Removals ship when they are ready, with no deprecation schedule. A `type!:` commit is a prompt to check the PR's
+sections, never the bump itself.
+
+### The bump
+
+`scripts/generate-changelog.py --bump` prints the next version from the PRs merged since the last release, and
+`cut-release-branch.sh` prints it beside the version the cut is given:
+
+- The highest heading among their sections sets the bump.
+- A `rust-version` raised since the last tag is a minor-level change, so it lifts a patch to a minor. A Rust repo's
+  `rust-version` equals the toolchain `rust-toolchain.toml` pins, and CI's MSRV job builds on exactly that version.
+- Before 1.0, a major or a minor moves the middle number and a patch moves the last: `0.4.2` becomes `0.5.0` or `0.4.3`.
+  This is stricter than Cargo's convention on purpose: an addition never ships as a last-number bump, so a `^0.y`
+  dependent receives only fixes until it opts in.
+- From 1.0, when the sections call for a major, the release agent asks the maintainer: a major, or a minor under the
+  small-break exception. A minor ships `docs/migrating/v<version>.md`, whose first line names the exception, and
+  preflight fails a 1.0+ release that keeps its major and carries `### Breaking changes` without that guide.
+
+### Overrides
+
+<!-- canonical:repo-begin overrides -->
+
+None. A repo that departs from the bump, the pre-1.0 rule, or the MSRV rule states the rule it follows here.
+
+<!-- canonical:repo-end -->
+
+<!-- canonical:end versioning-semver -->
 
 ## Releasing dev to main
 
@@ -122,8 +199,10 @@ git ls-files | grep -E "$GUARDED" | xargs -r trash
 git add -A                                                      # stages adds, mods, AND deletions
 
 # 4. Version bump (plain-text VERSION, no leading "v"), then the changelog from the PRs
-#    merged into dev since the previous release. The overlay commit carries no per-PR
-#    history, so the section is built from dev's PRs, not from this branch's commits.
+#    merged into dev since the previous release. --bump prints the version those PRs'
+#    sections call for on its first line (§ Versioning). The overlay commit carries no
+#    per-PR history, so the section is built from dev's PRs, not from this branch's commits.
+scripts/generate-changelog.py --bump
 printf '%s\n' '<version>' > VERSION
 scripts/generate-changelog.py --from-dev-prs
 git add -A

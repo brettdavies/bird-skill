@@ -43,7 +43,9 @@ git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventi
 On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
 `origin/main..origin/dev` instead of `$LAST_TAG..dev`.
 
-Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
+A `!:` commit is a cross-check hint only: the PRs' changelog sections set the bump
+([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A `!:` commit whose PR filed no `### Breaking changes` bullet
+is a question for its author, not a major on its own.
 
 ## Checklist
 
@@ -57,18 +59,27 @@ Dependabot raises the same fix again.
 
 <!-- canonical:begin drift-gate -->
 
-- [ ] The previous release's own bookkeeping reached `dev` (gate 0: the version carriers and `CHANGELOG.md` as the
-  release left them). It fails when a backport never ran; run `scripts/sync-dev-after-release.sh v<previous>`, merge its
-  PR, and rerun.
-- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
-  `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
-- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2). `.github/` reaches `main` through the release,
-  so config that has reached `dev` and not `main` is what this release delivers, and the gate counts it. The gate fails
-  on the other direction, where `main` holds workflow or ruleset config `dev` never received, and names each path as
-  `missing` or `differs`.
-- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3, which reads `package-lock.json`, `bun.lock`,
-  and `Cargo.lock`). The one benign case is a version still inside the local package manager's release-age window when
-  the advisory is already patched at `dev`'s version.
+- [ ] The previous release's own bookkeeping reached `dev` (gate 0).
+
+  Gate 0 checks the version carriers and `CHANGELOG.md` as the release left them. It fails when a backport never ran;
+  run `scripts/sync-dev-after-release.sh v<previous>`, merge its PR, and rerun.
+
+- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1).
+
+  Gate 1 lists each commit that does not, as `differs` or `missing`. Backport them by PR into `dev` first, merge, and
+  rerun.
+
+- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2).
+
+  `.github/` reaches `main` through the release, so config that has reached `dev` and not `main` is what this release
+  delivers, and the gate counts it. The gate fails on the other direction, where `main` holds workflow or ruleset
+  config `dev` never received, and names each path as `missing` or `differs`.
+
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3).
+
+  Gate 3 reads `package-lock.json`, `bun.lock`, and `Cargo.lock`. The one benign case is a version still inside the
+  local package manager's release-age window when the advisory is already patched at `dev`'s version.
+
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 <!-- canonical:end drift-gate -->
@@ -77,10 +88,10 @@ This repo carries no lockfile, so gate 3 SKIPs; it becomes live the day one is a
 
 ### Cross-repo blast radius
 
-- [ ] **Contract diff.** Diff every consumer-facing contract (bundle layout, `SKILL.md` frontmatter, `write-op-gate.sh`
-  flags and exit codes, `references/` file names `SKILL.md` links to) between `$LAST_TAG` and `dev`. Every field
-  renamed / added / removed / shape-changed becomes a row in the release's `### Breaking changes` (consumers
-  feature-detect from this list).
+- [ ] **Contract diff.** Diff every surface [`RELEASES.md` § What the contract is](./RELEASES.md#what-the-contract-is)
+  names between `$LAST_TAG` and `dev`. A surface removed, renamed, or retyped needs a `### Breaking changes` bullet in
+  its PR's changelog, and a new surface an `### Added` bullet. The generator reads merged PR bodies, so add a missing
+  bullet to that PR's body before the cut.
 - [ ] **Downstream consumers ready.** The `bird` binary's `skill install` points at this repo's `main`; a bundle layout
   change that moves `SKILL.md` or `scripts/` breaks every host's discovery path. If `bird` is not ready, hold the tag.
 - [ ] **Version-cross references.** The `bird` version pinned in `README.md` (`Requires bird v<MIN>`) matches the
