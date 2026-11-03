@@ -105,8 +105,7 @@ The bundle's contract is what an installed copy exposes to the host and the agen
 - **Install layout:** the repository root is the skill root, with `SKILL.md` and `VERSION` at its top.
   `bird skill install <host>` clones the repository into the host's `bird` skill directory
   ([`references/skill-install.md`](./references/skill-install.md)).
-- **`SKILL.md` frontmatter:** `name: bird`, the name hosts load the skill under, and the `description` they match a task
-  against.
+- **`SKILL.md`'s `name: bird`:** the name hosts load the skill under.
 - **`bin/check-update`:** its path, its stdout (nothing, or one `UPGRADE_AVAILABLE <local> <remote>` line), its exit
   code (always `0`), and its state files under `$HOME/.cache/bird-skill/`
   ([`references/update-check.md`](./references/update-check.md)).
@@ -114,9 +113,10 @@ The bundle's contract is what an installed copy exposes to the host and the agen
   arguments it refuses, and its exit codes `0` to `4` plus the live call's own.
 - **`VERSION`:** one `X.Y.Z` line, which `bin/check-update` compares with the `VERSION` on `main`.
 
-The wording of `SKILL.md`'s body, the files under `references/` and `templates/` and their paths, the evals, and the
-producer-side files (`tests/`, `fixtures/`, the release scripts, the runbooks) are not contract. What the bundle says
-about `bird` itself documents `bird`'s contract, which `bird`'s own releases version.
+`SKILL.md`'s `description` and the wording of its body are trigger and guidance tuning that can change in any release.
+They, the files under `references/` and `templates/` and their paths, the evals, and the producer-side files (`tests/`,
+`fixtures/`, the release scripts, the runbooks) are not contract. What the bundle says about `bird` itself documents
+`bird`'s contract, which `bird`'s own releases version.
 
 <!-- canonical:repo-end -->
 
