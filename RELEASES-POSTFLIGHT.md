@@ -40,10 +40,11 @@ Run immediately after the tag push and `gh release create`.
   --sort=-version:refname | sed -n 2p`) and the squash SHA of this release on `main` (`git log -1 --format=%h
   origin/main`) somewhere reachable under incident pressure. A rollback is a `git revert` of that SHA; see
   [`RELEASES.md` § Rollback](./RELEASES.md#rollback).
-- [ ] **Rollback path confirmed.** If this release is bad, revert its squash commit on `dev` through a PR whose
-  changelog files what the revert takes back, then cut a release whose version `generate-changelog.py --bump`
-  computes, so consumers' next `bird skill update` receives the last-good tree
-  ([`RELEASES.md` § Rollback](./RELEASES.md#rollback)). Mark the bad GitHub Release as a pre-release afterwards.
+- [ ] **Rollback path confirmed.** If this release is bad, cut `release/v<version>` from `main`, revert the release
+  squash commit under a Conventional Commit subject that is the revert's changelog bullet, and ship it through the
+  normal PR to `main` so consumers' next `bird skill update` receives the last-good tree. `<version>` follows the six
+  headings applied to that bullet ([`RELEASES.md` § Rollback](./RELEASES.md#rollback)). Mark the bad GitHub Release as
+  a pre-release afterwards, and backport the revert to `dev`.
 - [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Run
   `scripts/sync-dev-after-release.sh v<version>`; it writes `VERSION` (creating it on the first release that uses
   this flow), copies `CHANGELOG.md` from `main`, adopts the release-prep edits it discovers since the previous tag, and

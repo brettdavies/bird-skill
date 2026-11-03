@@ -228,11 +228,12 @@ Rollback happens at the surface users consume, not by rewriting history. For mos
 registry, or a formula, and re-pointing it is fast and reversible while rewriting `main` is neither. For `bird-skill`
 the surface **is** `main`: every `bird skill update` is a fresh depth-1 clone of the default branch, so the only way to
 change what consumers receive is to move `main` forward. A rollback is therefore a revert release: `git revert` of the
-bad squash commit lands on `dev` as a PR, then ships through the normal release cut and a new tag. The release flow
-exists so that `main` only ever moves forward through a PR, and the rollback respects that. The revert goes through
-`dev` for two reasons. Its PR's changelog sections are what `generate-changelog.py --bump` reads, so the revert's
-version follows the six headings like any other release: taking back a surface the bad release added is a breaking
-change, not a patch. And `dev` stops carrying the reverted content, so the next overlay cannot ship it again. Recording
+bad squash commit on a `release/*` branch, through the normal PR to `main`, then a new tag. The release flow exists so
+that `main` only ever moves forward through a PR, and the rollback respects that. The branch is cut from `main` so the
+revert release ships only the revert, whatever `dev` holds at the time. That is also why a person sets its version:
+`generate-changelog.py --bump` reads only PRs merged into `dev`, so the revert's own bullet, filed under the six
+headings, decides the bump. Taking back a surface the bad release added is a breaking change, not a patch. The backport
+after the revert release carries it to `dev`, so the next overlay does not ship the reverted content again. Recording
 the last-good tag and the release's squash SHA before the release goes out is what lets the revert start at once under
 incident pressure.
 

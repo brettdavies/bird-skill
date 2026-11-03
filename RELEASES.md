@@ -369,27 +369,40 @@ holds is what every consumer receives on their next update. There is no deployme
 yank; the rollback is a revert release. Knowing the last-good tag before the release goes out is a
 [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) gate.
 
-```bash
-# 1. Revert the bad release on dev, keeping dev's release bookkeeping, and PR it to dev.
-#    Its ## Changelog files what the revert takes back under § The six headings: a surface
-#    the bad release added is a `### Breaking changes` "Remove" bullet, one it removed is
-#    `### Added`, and anything outside the contract is `### Changed` or left out.
-git fetch origin
-git checkout -b fix/revert-v<bad-version> origin/dev
-git revert --no-commit <bad-release-squash-sha>
-git checkout origin/dev -- VERSION CHANGELOG.md
-git commit
+Set `<version>` before the cut, by [§ The six headings](#the-six-headings) applied to the revert's own bullet: taking
+back a contract surface the bad release added is a `### Breaking changes` "Remove" bullet, a major (the middle number
+before 1.0); restoring one it removed is an `### Added` bullet, a minor (the middle number before 1.0); anything else is
+a patch. `generate-changelog.py --bump` reads only PRs merged into `dev`, so it cannot compute a revert's version.
 
-# 2. Cut the revert release per § Releasing dev to main once that PR merges. Step 1's --bump
-#    computes its version from the revert's sections and those of any other PR dev carries.
+```bash
+# 1. Cut a release branch from main and revert the bad release's squash commit. The commit
+#    subject is the revert's changelog bullet, which git-cliff files by its type (cliff.toml):
+#    `revert!: remove <surface> ...` under Breaking changes, `feat: restore <surface> ...`
+#    under Added, `fix: revert v<bad-version> ...` under Fixed. git revert's own
+#    `Revert "..."` subject is not a Conventional Commit, so git-cliff drops it and the
+#    section comes out empty.
+git fetch origin
+git checkout -B release/v<version> origin/main
+git revert --no-commit <bad-release-squash-sha>
+git commit                                        # the subject named above
+
+# 2. Bump VERSION, regenerate the changelog, and ship through the normal PR to main.
+printf '%s\n' '<version>' > VERSION
+scripts/generate-changelog.py --tag v<version>
+git add -A && git commit
+git push -u origin release/v<version>
+gh pr create --base main --head release/v<version> --title "release: v<version>" --body-file /tmp/body.md
 
 # 3. Tag and publish per § Tagging and publishing, then mark the bad GitHub Release as a pre-release so
 #    `gh release view` and the releases page stop advertising it as latest.
 gh release edit v<bad-version> --prerelease
 ```
 
-The revert release ships `dev`'s tree, so every PR merged into `dev` since the bad release ships with it. Revert or hold
-on `dev` first any PR that must not ship yet.
+The revert release ships only the revert. The backport after it
+([§ After publish](#after-publish-sync-dev-with-the-release)) carries the revert to `dev`:
+`scripts/sync-dev-after-release.sh v<version>` adopts each reverted path whose `dev` copy still matches the bad
+release's, and lists a path `dev` has changed since as contested, to take with `--only PATH`. A reverted path left off
+`dev` ships again with the next release's overlay.
 
 Consumers who already updated onto the bad release recover with `bird skill update <host>` once the revert release is on
 `main`. The `fix/*` that addresses the underlying defect lands through `dev` afterwards like any other change.
