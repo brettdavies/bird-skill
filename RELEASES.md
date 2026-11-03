@@ -465,15 +465,16 @@ gh api -X PUT repos/brettdavies/bird-skill/rulesets/<id> --input .github/ruleset
 `bird-skill` is a docs-only skill bundle: markdown plus the consumer-side `scripts/write-op-gate.sh`. Nothing compiles
 and nothing deploys.
 
-| Item                 | Value                                                                                                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| Version carrier      | `VERSION` (plain text, no leading `v`). `sync-dev-after-release.sh` creates it on the first backport. |
-| Distribution channel | `bird skill install <host>` / `bird skill update <host>`: a hardened `git clone --depth 1` of `main`. |
-| Release artifact     | Annotated `v<version>` tag plus a GitHub Release whose notes are the matching `CHANGELOG.md` section. |
-| Release workflow     | None. Tag and Release are pushed by hand per [§ Tagging and publishing](#tagging-and-publishing).     |
-| Required secrets     | None. `gh` auth on the maintainer's machine is the only credential.                                   |
-| Rollback surface     | `main`. See [§ Rollback](#rollback).                                                                  |
-| Preflight script     | None vendored; [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) is walked by hand after `drift.sh`. |
+| Item                 | Value                                                                                                                                                                                                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Version carrier      | `VERSION` (plain text, no leading `v`). `sync-dev-after-release.sh` creates it on the first backport.                                                                                                                                                                                                         |
+| Distribution channel | `bird skill install <host>` / `bird skill update <host>`: a hardened `git clone --depth 1` of `main`.                                                                                                                                                                                                         |
+| Release artifact     | Annotated `v<version>` tag plus a GitHub Release whose notes are the matching `CHANGELOG.md` section.                                                                                                                                                                                                         |
+| Release workflow     | None. Tag and Release are pushed by hand per [§ Tagging and publishing](#tagging-and-publishing).                                                                                                                                                                                                             |
+| Release tools        | `uv` runs `scripts/generate-changelog.py` (its shebang is `uv run --script`; Python 3.11+ runs it too). An authenticated `gh` supplies the PR bodies `--bump`, `--from-dev-prs`, and `--audit-sections` read. `git-cliff` builds the changelog section on a branch cut from `main` ([§ Rollback](#rollback)). |
+| Required secrets     | None. `gh` auth on the maintainer's machine is the only credential.                                                                                                                                                                                                                                           |
+| Rollback surface     | `main`. See [§ Rollback](#rollback).                                                                                                                                                                                                                                                                          |
+| Preflight script     | None vendored; [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) is walked by hand after `drift.sh`.                                                                                                                                                                                                         |
 
 ## Related docs
 
