@@ -89,9 +89,11 @@ This repo carries no lockfile, so gate 3 SKIPs; it becomes live the day one is a
 ### Cross-repo blast radius
 
 - [ ] **Contract diff.** Diff every surface [`RELEASES.md` § What the contract is](./RELEASES.md#what-the-contract-is)
-  names between `$LAST_TAG` and `dev`. A surface removed, renamed, or retyped needs a `### Breaking changes` bullet in
-  its PR's changelog, and a new surface an `### Added` bullet. The generator reads merged PR bodies, so add a missing
-  bullet to that PR's body before the cut.
+  names between `$LAST_TAG` and `dev`, and check that its PR files each change under the heading
+  [§ The six headings](./RELEASES.md#the-six-headings) gives it: a surface removed, renamed, or retyped, or whose
+  meaning changed, under `### Breaking changes`; one marked for removal under `### Deprecated`; a new one under
+  `### Added`. The generator reads merged PR bodies, so fix a missing or misfiled bullet in that PR's body before the
+  cut.
 - [ ] **Downstream consumers ready.** The `bird` binary's `skill install` points at this repo's `main`; a bundle layout
   change that moves `SKILL.md` or `scripts/` breaks every host's discovery path. If `bird` is not ready, hold the tag.
 - [ ] **Documented `bird` release.** The bundle documents the latest `bird` GitHub release, the one
