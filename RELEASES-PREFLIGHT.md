@@ -135,13 +135,13 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] **The version is the one the changelog sections call for.** `scripts/generate-changelog.py --bump --tag v<version>`
   prints `<version>` on its first line ([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A difference is the
   maintainer's call, made before the release commit.
-- [ ] **Every merged PR since `$LAST_TAG` has a non-empty `## Changelog` section.** Spot-check via:
+- [ ] **No PR this release carries leaves its changelog entry to its title.** Swept, not sampled:
+  `scripts/generate-changelog.py --audit-sections` reads the PRs merged into `dev` since the previous release, names
+  every one whose body never offered the `## Changelog` section under a title the fallback would print, and exits 1
+  when any does. A section left empty on purpose passes: the generator reads it as nothing user-facing.
 
   ```bash
-  gh pr list --base dev --state merged \
-    --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"
-  # Then for each PR:
-  gh pr view <num> --json body
+  scripts/generate-changelog.py --audit-sections
   ```
 
 - [ ] **Diff-A verification before commit.** On the staged overlay, `git diff --cached --name-only origin/dev` filtered
