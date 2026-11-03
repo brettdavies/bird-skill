@@ -86,7 +86,7 @@ optional: fill `## Breaking Changes` on a major, delete the rest when they do no
 ## Versioning
 
 The marked lines below are github-repo-setup's SemVer section of `references/versioning.md`, which the drift check
-compares, and line 1 declares the scheme. This repo vendors neither `cut-release-branch.sh` nor `preflight.sh`: step 4
+compares, and line 1 declares the scheme. This repo vendors neither `cut-release-branch.sh` nor `preflight.sh`: step 1
 of [§ Releasing dev to main](#releasing-dev-to-main) runs `scripts/generate-changelog.py --bump` for the version, and
 the 1.0+ migration-guide check is made by hand until a script carries it.
 
@@ -183,8 +183,10 @@ directly:
 # 0. Nothing on main that dev never received (security PRs, hotfixes, config). Exits 1 while drift exists.
 scripts/release/drift.sh
 
-# 1. Branch from main, NOT dev.
+# 1. Branch from main, NOT dev. --bump prints the version the PRs merged into dev since
+#    the previous release call for (§ Versioning); its first line is <version>.
 git fetch origin
+scripts/generate-changelog.py --bump
 git checkout -B release/v<version> origin/main
 
 # 2. Overlay dev's entire tracked tree onto the main base. `checkout -- .` writes dev's
@@ -201,12 +203,10 @@ git ls-files | grep -E "$GUARDED" | xargs -r trash
 git add -A                                                      # stages adds, mods, AND deletions
 
 # 4. Version bump (plain-text VERSION, no leading "v"), then the changelog from the PRs
-#    merged into dev since the previous release. --bump prints the version those PRs'
-#    sections call for on its first line (§ Versioning). The overlay commit carries no
-#    per-PR history, so the section is built from dev's PRs, not from this branch's commits.
-scripts/generate-changelog.py --bump
+#    merged into dev since the previous release. The overlay commit carries no per-PR
+#    history, so the section is built from dev's PRs, not from this branch's commits.
 printf '%s\n' '<version>' > VERSION
-scripts/generate-changelog.py --from-dev-prs
+scripts/generate-changelog.py --from-dev-prs --tag v<version>
 git add -A
 
 # 5. Verify before committing.

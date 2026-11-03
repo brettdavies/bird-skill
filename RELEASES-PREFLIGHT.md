@@ -130,6 +130,9 @@ The release is a `git clone --depth 1` of `main`. None of this runs in CI.
 These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensive to recover from. Confirm explicitly.
 
 - [ ] **`VERSION` bumped** to the new tag value (`v<X.Y.Z>` minus the leading `v`; plain text, one line).
+- [ ] **The version is the one the changelog sections call for.** `scripts/generate-changelog.py --bump --tag v<version>`
+  prints `<version>` on its first line ([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A difference is the
+  maintainer's call, made before the release commit.
 - [ ] **Every merged PR since `$LAST_TAG` has a non-empty `## Changelog` section.** Spot-check via:
 
   ```bash
