@@ -1,3 +1,4 @@
+<!-- canonical: version-scheme semver -->
 # Releasing `bird-skill`
 
 Operational runbook. Rationale lives in [`RELEASES-RATIONALE.md`](./RELEASES-RATIONALE.md). Pre-cut go/no-go checklist
@@ -56,19 +57,22 @@ The standard feature → PR → squash-merge flow remains required for everythin
 
 ## PR body
 
-Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` verbatim. Six sections, no inventions:
-`## Summary`, `## Changelog`, `## Type of Change`, `## Related Issues/Stories`, `## Files Modified`, `## Testing`.
+Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` verbatim. Six required sections, in
+template order, no inventions: `## Summary`, `## Changelog`, `## Type of Change`, `## Related Issues/Stories`,
+`## Testing`, `## Files Modified`. The template's other sections (`## Key Features`, `## Benefits`,
+`## Breaking Changes`, `## Deployment Notes`, `## Screenshots/Recordings`, `## Checklist`, `## Additional Context`) are
+optional: fill `## Breaking Changes` on a major, delete the rest when they do not apply.
 
 - **No explainer prose anywhere in the body.** User-facing substance only.
 - **Summary describes the net diff only**: what merged `main` looks like vs the base branch. Not commit history,
   intermediate state, or overlay mechanics.
 - **Zero verification artifacts in the body.** No diff stats, leak-check output, patch-id cherry-check counts, pre-push
   gate results, CI status, or prose-scrub findings. Anomalies get fixed before push, not audit-trailed.
-- **Changelog** subsections (`### Added` / `### Changed` / `### Fixed` / `### Documentation`): 1-5 bullets each, delete
-  empty subsections, each bullet starts with a verb. `scripts/generate-changelog.py` extracts these bullets verbatim
-  into `CHANGELOG.md`. A PR that lands with an empty `## Changelog` contributes nothing; only a PR whose body has no
-  `## Changelog` section at all contributes its title, and not even then for `chore`, `ci`, `build`, `style`, or
-  `test` PRs.
+- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Fixed` /
+  `### Documentation`, the six headings of [§ Versioning](#versioning)): 1-5 bullets each, delete empty subsections,
+  each bullet starts with a verb. `scripts/generate-changelog.py` extracts these bullets verbatim into `CHANGELOG.md`. A
+  PR that lands with an empty `## Changelog` contributes nothing; only a PR whose body has no `## Changelog` section at
+  all contributes its title, and not even then for `chore`, `ci`, `build`, `style`, or `test` PRs.
 - **Type of Change**: one checkbox. Prefer `feat`/`fix` over `chore` for any user-observable change.
 - **Related Issues/Stories**: four labels (`Story:` / `Issue:` / `Architecture:` / `Related PRs:`). All four required
   even when empty (`- None.` / `n/a`).
@@ -78,6 +82,84 @@ Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` v
 - **No hard line wraps**: one logical line per paragraph or bullet.
 
 → Rationale: [`RELEASES-RATIONALE.md` § PR body conventions](./RELEASES-RATIONALE.md#pr-body-conventions).
+
+## Versioning
+
+The marked lines below are github-repo-setup's SemVer section of `references/versioning.md`, which the drift check
+compares, and line 1 declares the scheme. This repo vendors neither `cut-release-branch.sh` nor `preflight.sh`: step 1
+of [§ Releasing dev to main](#releasing-dev-to-main) runs `scripts/generate-changelog.py --bump` for the version, and
+the 1.0+ migration-guide check is made by hand until a script carries it.
+
+<!-- canonical:begin versioning-semver -->
+
+This repo follows [SemVer 2.0.0](https://semver.org/). Its version comes from its changelog: every PR files each
+user-facing change under one of the six headings below, and a release takes the highest bump any of its PRs calls for.
+The rules cover only the surfaces § What the contract is names.
+
+### What the contract is
+
+<!-- canonical:repo-begin contract -->
+
+The bundle's contract is what an installed copy exposes to the host and the agent that load it:
+
+- **Install layout:** the repository root is the skill root, with `SKILL.md` and `VERSION` at its top.
+  `bird skill install <host>` clones the repository into the host's `bird` skill directory
+  ([`references/skill-install.md`](./references/skill-install.md)).
+- **`SKILL.md`'s `name: bird`:** the name hosts load the skill under.
+- **`bin/check-update`:** its path, its stdout (nothing, or one `UPGRADE_AVAILABLE <local> <remote>` line), its exit
+  code (always `0`), and its state files under `$HOME/.cache/bird-skill/`
+  ([`references/update-check.md`](./references/update-check.md)).
+- **`scripts/write-op-gate.sh`:** its invocation, `write-op-gate.sh [--yes] -- bird <write-verb> [args...]`, the
+  arguments it refuses, and its exit codes `0` to `4` plus the live call's own.
+- **`VERSION`:** one `X.Y.Z` line, which `bin/check-update` compares with the `VERSION` on `main`.
+
+`SKILL.md`'s `description` and the wording of its body are trigger and guidance tuning that can change in any release.
+They, the files under `references/` and `templates/` and their paths, the evals, and the producer-side files (`tests/`,
+`fixtures/`, the release scripts, the runbooks) are not contract. What the bundle says about `bird` itself documents
+`bird`'s contract, which `bird`'s own releases version.
+
+<!-- canonical:repo-end -->
+
+### The six headings
+
+| Heading            | Holds                                                                   | Bump  |
+| ------------------ | ----------------------------------------------------------------------- | ----- |
+| `Breaking changes` | a contract surface removed, renamed, or retyped, or its meaning changed | major |
+| `Added`            | a new contract surface                                                  | minor |
+| `Changed`          | a visible change outside the contract                                   | patch |
+| `Deprecated`       | a contract surface marked for removal                                   | minor |
+| `Fixed`            | behavior brought back to the documented contract                        | patch |
+| `Documentation`    | documentation only                                                      | patch |
+
+`generate-changelog.py` writes them in this order and any other heading after them. A contract removal is a
+`Breaking changes` bullet that starts with "Remove"; a removal outside the contract goes under `Changed`, or is left
+out. Removals ship when they are ready, with no deprecation schedule. A `type!:` commit is a prompt to check the PR's
+sections, never the bump itself.
+
+### The bump
+
+`scripts/generate-changelog.py --bump` prints the next version from the PRs merged since the last release, and
+`cut-release-branch.sh` prints it beside the version the cut is given:
+
+- The highest heading among their sections sets the bump.
+- A `rust-version` raised since the last tag is a minor-level change, so it lifts a patch to a minor. A Rust repo's
+  `rust-version` equals the toolchain `rust-toolchain.toml` pins, and CI's MSRV job builds on exactly that version.
+- Before 1.0, a major or a minor moves the middle number and a patch moves the last: `0.4.2` becomes `0.5.0` or `0.4.3`.
+  This is stricter than Cargo's convention on purpose: an addition never ships as a last-number bump, so a `^0.y`
+  dependent receives only fixes until it opts in.
+- From 1.0, when the sections call for a major, the release agent asks the maintainer: a major, or a minor under the
+  small-break exception. A minor ships `docs/migrating/v<version>.md`, whose first line names the exception, and
+  preflight fails a 1.0+ release that keeps its major and carries `### Breaking changes` without that guide.
+
+### Overrides
+
+<!-- canonical:repo-begin overrides -->
+
+None. A repo that departs from the bump, the pre-1.0 rule, or the MSRV rule states the rule it follows here.
+
+<!-- canonical:repo-end -->
+
+<!-- canonical:end versioning-semver -->
 
 ## Releasing dev to main
 
@@ -101,8 +183,10 @@ directly:
 # 0. Nothing on main that dev never received (security PRs, hotfixes, config). Exits 1 while drift exists.
 scripts/release/drift.sh
 
-# 1. Branch from main, NOT dev.
+# 1. Branch from main, NOT dev. --bump prints the version the PRs merged into dev since
+#    the previous release call for (§ Versioning); its first line is <version>.
 git fetch origin
+scripts/generate-changelog.py --bump
 git checkout -B release/v<version> origin/main
 
 # 2. Overlay dev's entire tracked tree onto the main base. `checkout -- .` writes dev's
@@ -122,7 +206,7 @@ git add -A                                                      # stages adds, m
 #    merged into dev since the previous release. The overlay commit carries no per-PR
 #    history, so the section is built from dev's PRs, not from this branch's commits.
 printf '%s\n' '<version>' > VERSION
-scripts/generate-changelog.py --from-dev-prs
+scripts/generate-changelog.py --from-dev-prs --tag v<version>
 git add -A
 
 # 5. Verify before committing.
@@ -159,8 +243,8 @@ with zero conflicts. Auto-delete removes `release/v<version>` from the remote on
 
 ### Exception: cherry-pick
 
-The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main`
-base is an exception for a repo with a stated reason it cannot overlay; `bird-skill` has none, so this section is the
+The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main` base
+is an exception for a repo with a stated reason it cannot overlay; `bird-skill` has none, so this section is the
 fallback recipe, not the default. When cherry-picking, run the triple-diff verification:
 
 ```bash
@@ -216,8 +300,8 @@ git cherry-pick --continue --no-edit
 ```
 
 Repeat per conflicting commit. After all picks land, run `git ls-files | grep -E "$(scripts/release/guarded-paths.sh)"`.
-If anything remains, drop it with the same two-step pattern and commit as `chore(release): drop stray plan spikes from
-cherry-pick rename detection` before the leak check.
+If anything remains, drop it with the same two-step pattern and commit as
+`chore(release): drop stray plan spikes from cherry-pick rename detection` before the leak check.
 
 ## Tagging and publishing
 
@@ -241,9 +325,9 @@ exists and is not a draft, so the release step is not optional.
 
 ### After publish: sync `dev` with the release
 
-Once the GitHub Release is published, bring the release bookkeeping (`VERSION`, `CHANGELOG.md`) and any edit made on
-the release branch back to `dev` so the integration branch starts from the released baseline. Preview it first:
-`--dry-run` prints what the sync would carry, creates no branch, and leaves the tree clean.
+Once the GitHub Release is published, bring the release bookkeeping (`VERSION`, `CHANGELOG.md`) and any edit made on the
+release branch back to `dev` so the integration branch starts from the released baseline. Preview it first: `--dry-run`
+prints what the sync would carry, creates no branch, and leaves the tree clean.
 
 ```bash
 scripts/sync-dev-after-release.sh v<version> --dry-run
@@ -285,23 +369,40 @@ holds is what every consumer receives on their next update. There is no deployme
 yank; the rollback is a revert release. Knowing the last-good tag before the release goes out is a
 [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) gate.
 
+Set `<version>` before the cut, by [§ The six headings](#the-six-headings) applied to the revert's own bullet: taking
+back a contract surface the bad release added is a `### Breaking changes` "Remove" bullet, a major (the middle number
+before 1.0); restoring one it removed is an `### Added` bullet, a minor (the middle number before 1.0); anything else is
+a patch. `generate-changelog.py --bump` reads only PRs merged into `dev`, so it cannot compute a revert's version.
+
 ```bash
-# 1. Cut a release branch from main and revert the bad release's squash commit.
+# 1. Cut a release branch from main and revert the bad release's squash commit. The commit
+#    subject is the revert's changelog bullet, which git-cliff files by its type (cliff.toml):
+#    `revert!: remove <surface> ...` under Breaking changes, `feat: restore <surface> ...`
+#    under Added, `fix: revert v<bad-version> ...` under Fixed. git revert's own
+#    `Revert "..."` subject is not a Conventional Commit, so git-cliff drops it and the
+#    section comes out empty.
 git fetch origin
-git checkout -B release/v<next-patch> origin/main
-git revert --no-edit <bad-release-squash-sha>
+git checkout -B release/v<version> origin/main
+git revert --no-commit <bad-release-squash-sha>
+git commit                                        # the subject named above
 
 # 2. Bump VERSION, regenerate the changelog, and ship through the normal PR to main.
-printf '%s\n' '<next-patch>' > VERSION
-scripts/generate-changelog.py --tag v<next-patch>
+printf '%s\n' '<version>' > VERSION
+scripts/generate-changelog.py --tag v<version>
 git add -A && git commit
-git push -u origin release/v<next-patch>
-gh pr create --base main --head release/v<next-patch> --title "release: v<next-patch>" --body-file /tmp/body.md
+git push -u origin release/v<version>
+gh pr create --base main --head release/v<version> --title "release: v<version>" --body-file /tmp/body.md
 
 # 3. Tag and publish per § Tagging and publishing, then mark the bad GitHub Release as a pre-release so
 #    `gh release view` and the releases page stop advertising it as latest.
 gh release edit v<bad-version> --prerelease
 ```
+
+The revert release ships only the revert. The backport after it
+([§ After publish](#after-publish-sync-dev-with-the-release)) carries the revert to `dev`:
+`scripts/sync-dev-after-release.sh v<version>` adopts each reverted path whose `dev` copy still matches the bad
+release's, and lists a path `dev` has changed since as contested, to take with `--only PATH`. A reverted path left off
+`dev` ships again with the next release's overlay.
 
 Consumers who already updated onto the bad release recover with `bird skill update <host>` once the revert release is on
 `main`. The `fix/*` that addresses the underlying defect lands through `dev` afterwards like any other change.
@@ -341,8 +442,8 @@ regenerate. Hand-editing `CHANGELOG.md` directly produces drift the next regener
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
 - `ruleset-protect-main.json` (required signatures, linear history, squash-only merges via PR, required status checks
-  `guard-docs / check-forbidden-docs`, `guard-release / check-release-branch-name`, `guard-provenance /
-  check-provenance`, `markdownlint`; creation/deletion blocked, non-fast-forward blocked).
+  `guard-docs / check-forbidden-docs`, `guard-release / check-release-branch-name`,
+  `guard-provenance / check-provenance`, `markdownlint`; creation/deletion blocked, non-fast-forward blocked).
 - `ruleset-protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked). PR-only norm is
   convention + `guard-release-branch` on the main side.
 
@@ -364,15 +465,16 @@ gh api -X PUT repos/brettdavies/bird-skill/rulesets/<id> --input .github/ruleset
 `bird-skill` is a docs-only skill bundle: markdown plus the consumer-side `scripts/write-op-gate.sh`. Nothing compiles
 and nothing deploys.
 
-| Item                 | Value                                                                                                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| Version carrier      | `VERSION` (plain text, no leading `v`). `sync-dev-after-release.sh` creates it on the first backport. |
-| Distribution channel | `bird skill install <host>` / `bird skill update <host>`: a hardened `git clone --depth 1` of `main`. |
-| Release artifact     | Annotated `v<version>` tag plus a GitHub Release whose notes are the matching `CHANGELOG.md` section. |
-| Release workflow     | None. Tag and Release are pushed by hand per [§ Tagging and publishing](#tagging-and-publishing).     |
-| Required secrets     | None. `gh` auth on the maintainer's machine is the only credential.                                   |
-| Rollback surface     | `main`. See [§ Rollback](#rollback).                                                                  |
-| Preflight script     | None vendored; [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) is walked by hand after `drift.sh`. |
+| Item                 | Value                                                                                                                                                                                                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Version carrier      | `VERSION` (plain text, no leading `v`). `sync-dev-after-release.sh` creates it on the first backport.                                                                                                                                                                                                         |
+| Distribution channel | `bird skill install <host>` / `bird skill update <host>`: a hardened `git clone --depth 1` of `main`.                                                                                                                                                                                                         |
+| Release artifact     | Annotated `v<version>` tag plus a GitHub Release whose notes are the matching `CHANGELOG.md` section.                                                                                                                                                                                                         |
+| Release workflow     | None. Tag and Release are pushed by hand per [§ Tagging and publishing](#tagging-and-publishing).                                                                                                                                                                                                             |
+| Release tools        | `uv` runs `scripts/generate-changelog.py` (its shebang is `uv run --script`; Python 3.11+ runs it too). An authenticated `gh` supplies the PR bodies `--bump`, `--from-dev-prs`, and `--audit-sections` read. `git-cliff` builds the changelog section on a branch cut from `main` ([§ Rollback](#rollback)). |
+| Required secrets     | None. `gh` auth on the maintainer's machine is the only credential.                                                                                                                                                                                                                                           |
+| Rollback surface     | `main`. See [§ Rollback](#rollback).                                                                                                                                                                                                                                                                          |
+| Preflight script     | None vendored; [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) is walked by hand after `drift.sh`.                                                                                                                                                                                                         |
 
 ## Related docs
 

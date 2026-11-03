@@ -7,8 +7,8 @@ release.
 
 CI catches mechanical regressions inside this repo (markdown lint). This checklist covers what CI structurally can't:
 
-- Breaking changes to a contract that downstream consumers must adapt to (bundle layout, script flags, the `bird`
-  version the skill assumes).
+- Breaking changes to a contract that downstream consumers must adapt to (the surfaces
+  [`RELEASES.md` § What the contract is](./RELEASES.md#what-the-contract-is) names).
 - Real-world behavior against the `bird` binary and the live install path.
 - Distribution paths that only exercise on real artifacts (`git clone` to a real install destination).
 - Cross-repo sequencing where releasing here before a sibling repo is ready breaks downstreams.
@@ -43,7 +43,9 @@ git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventi
 On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
 `origin/main..origin/dev` instead of `$LAST_TAG..dev`.
 
-Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
+A `!:` commit is a cross-check hint only: the PRs' changelog sections set the bump
+([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A `!:` commit whose PR filed no `### Breaking changes` bullet
+is a question for its author, not a major on its own.
 
 ## Checklist
 
@@ -55,26 +57,51 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 `dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
 Dependabot raises the same fix again.
 
-- [ ] The previous release's bookkeeping reached `dev` (gate 0 fails when it never did; run
-      `scripts/sync-dev-after-release.sh v<version>`, merge its PR, and rerun).
-- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
-      `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
-- [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
-      one branch.
-- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3). This repo carries no lockfile, so the gate
-      SKIPs; it becomes live the day one is added.
-- [ ] `dev`-newer files are the routine changes this release ships; the gate counts them and does not list them.
+<!-- canonical:begin drift-gate -->
+
+- [ ] The previous release's own bookkeeping reached `dev` (gate 0).
+
+  Gate 0 checks the version carriers and `CHANGELOG.md` as the release left them. It fails when a backport never ran;
+  run `scripts/sync-dev-after-release.sh v<previous>`, merge its PR, and rerun.
+
+- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1).
+
+  Gate 1 lists each commit that does not, as `differs` or `missing`. Backport them by PR into `dev` first, merge, and
+  rerun.
+
+- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2).
+
+  `.github/` reaches `main` through the release, so config that has reached `dev` and not `main` is what this release
+  delivers, and the gate counts it. The gate fails on the other direction, where `main` holds workflow or ruleset
+  config `dev` never received, and names each path as `missing` or `differs`.
+
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3).
+
+  Gate 3 reads `package-lock.json`, `bun.lock`, and `Cargo.lock`. The one benign case is a version still inside the
+  local package manager's release-age window when the advisory is already patched at `dev`'s version.
+
+- [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
+
+<!-- canonical:end drift-gate -->
+
+This repo carries no lockfile, so gate 3 SKIPs; it becomes live the day one is added.
 
 ### Cross-repo blast radius
 
-- [ ] **Contract diff.** Diff every consumer-facing contract (bundle layout, `SKILL.md` frontmatter, `write-op-gate.sh`
-  flags and exit codes, `references/` file names `SKILL.md` links to) between `$LAST_TAG` and `dev`. Every field
-  renamed / added / removed / shape-changed becomes a row in the release's `### Breaking changes` (consumers
-  feature-detect from this list).
+- [ ] **Contract diff.** Diff every surface [`RELEASES.md` § What the contract is](./RELEASES.md#what-the-contract-is)
+  names between `$LAST_TAG` and `dev`, and check that its PR files each change under the heading
+  [§ The six headings](./RELEASES.md#the-six-headings) gives it: a surface removed, renamed, or retyped, or whose
+  meaning changed, under `### Breaking changes`; one marked for removal under `### Deprecated`; a new one under
+  `### Added`. The generator reads merged PR bodies, so fix a missing or misfiled bullet in that PR's body before the
+  cut.
 - [ ] **Downstream consumers ready.** The `bird` binary's `skill install` points at this repo's `main`; a bundle layout
   change that moves `SKILL.md` or `scripts/` breaks every host's discovery path. If `bird` is not ready, hold the tag.
-- [ ] **Version-cross references.** The `bird` version pinned in `README.md` (`Requires bird v<MIN>`) matches the
-  surface the skill teaches. A new `bird` flag documented in `SKILL.md` or `references/` bumps the pin in lockstep.
+- [ ] **Documented `bird` release.** The bundle documents the latest `bird` GitHub release, the one
+  `brew install brettdavies/tap/bird` installs, and nothing pins it to a binary version
+  ([`AGENTS.md` § Documented contract](./AGENTS.md#documented-contract)). Every passage this release changes that names
+  a `bird` command, flag, exit code, or envelope key matches that release, checked against the binary as
+  [`AGENTS.md` § Refreshing the bundle against a new `bird`](./AGENTS.md#refreshing-the-bundle-against-a-new-bird)
+  describes.
 - [ ] **Install-path destinations.** Every install URL or path the release will resolve to (the six host destinations
   in `references/skill-install.md`) actually exists on a `bird` that ships today.
 
@@ -105,13 +132,20 @@ The release is a `git clone --depth 1` of `main`. None of this runs in CI.
 These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensive to recover from. Confirm explicitly.
 
 - [ ] **`VERSION` bumped** to the new tag value (`v<X.Y.Z>` minus the leading `v`; plain text, one line).
-- [ ] **Every merged PR since `$LAST_TAG` has a non-empty `## Changelog` section.** Spot-check via:
+- [ ] **The version is the one the changelog sections call for.** `scripts/generate-changelog.py --bump --tag v<version>`
+  prints `<version>` on its first line ([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A difference is the
+  maintainer's call, made before the release commit.
+- [ ] **A 1.0+ release that keeps its major ships a migration guide for its breaking changes.** When the release keeps
+  the previous tag's major and its changelog section carries `### Breaking changes`, `docs/migrating/v<version>.md`
+  exists and its first line names the small-break exception ([`RELEASES.md` § The bump](./RELEASES.md#the-bump)). A
+  0.x release needs no guide.
+- [ ] **No PR this release carries leaves its changelog entry to its title.** Swept, not sampled:
+  `scripts/generate-changelog.py --audit-sections` reads the PRs merged into `dev` since the previous release, names
+  every one whose body never offered the `## Changelog` section under a title the fallback would print, and exits 1
+  when any does. A section left empty on purpose passes: the generator reads it as nothing user-facing.
 
   ```bash
-  gh pr list --base dev --state merged \
-    --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"
-  # Then for each PR:
-  gh pr view <num> --json body
+  scripts/generate-changelog.py --audit-sections
   ```
 
 - [ ] **Diff-A verification before commit.** On the staged overlay, `git diff --cached --name-only origin/dev` filtered
@@ -176,13 +210,13 @@ runs the same lint job, but the script smoke is not in CI and is the most likely
 
   Reserve the actual run for after the tag pushes ([`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) covers it).
 
-- [ ] **`bird --version` ≥ the minimum pinned in `README.md`.** The skill teaches an agent how to drive `bird`. If
-  `README.md` documents `Requires bird v<MIN>`, the locally-installed `bird` must satisfy it before shipping. Otherwise
-  users following the install instructions get a tool that mismatches the skill's expectations.
+- [ ] **Local `bird` is the latest release.** The checks that run `bird` read the release the bundle documents, so
+  the local `bird --version` names the tag of `brettdavies/bird`'s latest GitHub release. Upgrade with
+  `brew upgrade brettdavies/tap/bird` when it trails.
 
   ```bash
-  bird --version
-  rg '^Requires `bird` v' README.md                  # pin lives here; bump in lockstep with skill content
+  bird --version                                                 # bird X.Y.Z
+  gh api repos/brettdavies/bird/releases/latest --jq .tag_name   # vX.Y.Z
   ```
 
 - [ ] **`SKILL.md` references resolve.** Every `references/<file>` or `scripts/<file>` mentioned in `SKILL.md`
