@@ -7,8 +7,8 @@ release.
 
 CI catches mechanical regressions inside this repo (markdown lint). This checklist covers what CI structurally can't:
 
-- Breaking changes to a contract that downstream consumers must adapt to (bundle layout, script flags, the `bird`
-  version the skill assumes).
+- Breaking changes to a contract that downstream consumers must adapt to (the surfaces
+  [`RELEASES.md` § What the contract is](./RELEASES.md#what-the-contract-is) names).
 - Real-world behavior against the `bird` binary and the live install path.
 - Distribution paths that only exercise on real artifacts (`git clone` to a real install destination).
 - Cross-repo sequencing where releasing here before a sibling repo is ready breaks downstreams.
