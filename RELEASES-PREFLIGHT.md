@@ -135,6 +135,10 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] **The version is the one the changelog sections call for.** `scripts/generate-changelog.py --bump --tag v<version>`
   prints `<version>` on its first line ([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A difference is the
   maintainer's call, made before the release commit.
+- [ ] **A 1.0+ release that keeps its major ships a migration guide for its breaking changes.** When the release keeps
+  the previous tag's major and its changelog section carries `### Breaking changes`, `docs/migrating/v<version>.md`
+  exists and its first line names the small-break exception ([`RELEASES.md` § The bump](./RELEASES.md#the-bump)). A
+  0.x release needs no guide.
 - [ ] **No PR this release carries leaves its changelog entry to its title.** Swept, not sampled:
   `scripts/generate-changelog.py --audit-sections` reads the PRs merged into `dev` since the previous release, names
   every one whose body never offered the `## Changelog` section under a title the fallback would print, and exits 1
